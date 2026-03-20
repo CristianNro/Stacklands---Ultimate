@@ -1,0 +1,19 @@
+/Library
+/ProjectSettings
+/Assets/TextMesh Pro
+/Logs
+/UserSettings
+/Temp
+/Packages
+Stacklands - Ultimate.sln
+UpgradeLog.htm
+Assets/TextMesh Pro.meta
+Assets/UniversalRenderPipelineGlobalSettings.asset
+Assets/UniversalRenderPipelineGlobalSettings.asset.meta
+.vsconfig
+.vs/Stacklands - Ultimate/v17/DocumentLayout.json
+.vs/Stacklands - Ultimate/v17/.suo
+Assembly-CSharp.csproj
+*.meta
+/Assets/Settings
+Assets/DefaultVolumeProfile.asset
