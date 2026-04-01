@@ -4,87 +4,104 @@ using UnityEngine;
 // ============================================================
 // RecipeSystem
 // ------------------------------------------------------------
-// Responsabilidad de esta etapa:
-// - encontrar stacks existentes
-// - suscribirse a sus cambios
-// - revisar si un stack matchea con alguna receta
-// - ordenarle al stack arrancar o frenar crafting
-//
-// IMPORTANTE:
-// En esta etapa el stack todavía EJECUTA el crafting.
-// RecipeSystem solo DECIDE si corresponde o no.
+// Observa stacks y decide si deben arrancar, mantenerse o
+// cancelarse segun la mejor receta disponible.
 // ============================================================
 public class RecipeSystem : MonoBehaviour
 {
-    // Guardamos referencia a los stacks suscriptos para no suscribir dos veces.
     private readonly HashSet<CardStack> subscribedStacks = new HashSet<CardStack>();
+    private BoardRoot subscribedBoardRoot;
 
-    private void Start()
+    private void OnEnable()
     {
-        // Al arrancar la escena, buscamos stacks que ya existan.
+        TrySubscribeToBoardRoot();
         RegisterAllExistingStacks();
     }
 
     private void Update()
     {
-        // Por ahora usamos este barrido simple para detectar stacks nuevos.
-        // No es lo ideal final, pero es estable para esta etapa.
+        TrySubscribeToBoardRoot();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromBoardRoot();
+        UnsubscribeAllStacks();
+    }
+
+    private void TrySubscribeToBoardRoot()
+    {
+        BoardRoot currentBoardRoot = BoardRoot.Instance;
+        if (currentBoardRoot == null || subscribedBoardRoot == currentBoardRoot)
+            return;
+
+        UnsubscribeFromBoardRoot();
+
+        subscribedBoardRoot = currentBoardRoot;
+        subscribedBoardRoot.OnStackRegistered += HandleStackCreated;
+        subscribedBoardRoot.OnStackUnregistered += HandleStackDestroyed;
+
         RegisterAllExistingStacks();
     }
 
-    /// <summary>
-    /// Busca todos los CardStack activos en escena y se suscribe
-    /// a los que todavía no estén registrados.
-    /// </summary>
-    private void RegisterAllExistingStacks()
+    private void UnsubscribeFromBoardRoot()
     {
-        CardStack[] allStacks = FindObjectsByType<CardStack>(FindObjectsSortMode.None);
+        if (subscribedBoardRoot == null)
+            return;
 
-        foreach (CardStack stack in allStacks)
-        {
-            if (stack == null) continue;
-            if (subscribedStacks.Contains(stack)) continue;
-
-            SubscribeToStack(stack);
-
-            // Apenas lo registramos, evaluamos su estado actual.
-            EvaluateStack(stack);
-        }
+        subscribedBoardRoot.OnStackRegistered -= HandleStackCreated;
+        subscribedBoardRoot.OnStackUnregistered -= HandleStackDestroyed;
+        subscribedBoardRoot = null;
     }
 
-    /// <summary>
-    /// Se suscribe al evento de cambio del stack.
-    /// </summary>
-    private void SubscribeToStack(CardStack stack)
+    private void RegisterAllExistingStacks()
     {
-        if (stack == null) return;
-        if (subscribedStacks.Contains(stack)) return;
+        if (BoardRoot.Instance == null)
+        {
+            CardStack[] allStacks = FindObjectsByType<CardStack>(FindObjectsSortMode.None);
+
+            for (int i = 0; i < allStacks.Length; i++)
+                HandleStackCreated(allStacks[i]);
+
+            return;
+        }
+
+        IReadOnlyList<CardStack> activeStacks = BoardRoot.Instance.ActiveStacks;
+        for (int i = 0; i < activeStacks.Count; i++)
+            HandleStackCreated(activeStacks[i]);
+    }
+
+    private void HandleStackCreated(CardStack stack)
+    {
+        if (stack == null || subscribedStacks.Contains(stack))
+            return;
 
         stack.OnStackChanged += HandleStackChanged;
         subscribedStacks.Add(stack);
+        EvaluateStack(stack);
     }
 
-    /// <summary>
-    /// Cuando cambia un stack, revaluamos su receta.
-    /// </summary>
+    private void HandleStackDestroyed(CardStack stack)
+    {
+        if (stack == null || !subscribedStacks.Contains(stack))
+            return;
+
+        stack.OnStackChanged -= HandleStackChanged;
+        subscribedStacks.Remove(stack);
+
+        if (TaskSystem.Instance != null)
+            TaskSystem.Instance.CancelTaskForStack(stack);
+    }
+
     private void HandleStackChanged(CardStack stack)
     {
         EvaluateStack(stack);
     }
 
-    /// <summary>
-    /// Decide si un stack actual:
-    /// - debe empezar crafting
-    /// - debe seguir igual
-    /// - debe cancelar crafting
-    /// </summary>
     private void EvaluateStack(CardStack stack)
     {
         if (stack == null) return;
 
-        // ---------------------------------------------------------
-        // Si el stack quedó trivial, cancelamos cualquier tarea.
-        // ---------------------------------------------------------
         if (stack.IsEmpty() || stack.HasOnlyOneCard())
         {
             if (TaskSystem.Instance != null)
@@ -93,73 +110,28 @@ public class RecipeSystem : MonoBehaviour
             return;
         }
 
-        // ---------------------------------------------------------
-        // 1. PRIORIDAD MÁXIMA: receta NORMAL
-        // ---------------------------------------------------------
-        if (RecipeDatabase.Instance != null)
-        {
-            List<CardData> stackData = stack.GetCardDataList();
-            RecipeData recipe = RecipeDatabase.Instance.FindRecipe(stackData);
-
-            if (recipe != null)
-            {
-                // Validación genérica de requisitos por tags
-                if (recipe.HasTagRequirements())
-                {
-                    for (int i = 0; i < recipe.tagRequirements.Count; i++)
-                    {
-                        RecipeTagRequirement requirement = recipe.tagRequirements[i];
-                        if (requirement == null) continue;
-                        if (string.IsNullOrWhiteSpace(requirement.tag)) continue;
-
-                        int countInStack = stack.CountCardsWithTag(requirement.tag);
-
-                        if (countInStack < requirement.minCount)
-                        {
-                            if (TaskSystem.Instance != null)
-                                TaskSystem.Instance.CancelTaskForStack(stack);
-
-                            return;
-                        }
-                    }
-                }
-
-                // Si pasó las validaciones, arrancamos o mantenemos la tarea NORMAL
-                if (TaskSystem.Instance != null)
-                    TaskSystem.Instance.StartOrRefreshRecipeTask(stack, recipe);
-
-                return;
-            }
-        }
-        else
+        if (RecipeDatabase.Instance == null)
         {
             Debug.LogWarning("RecipeSystem: no existe RecipeDatabase.Instance.");
+            return;
         }
 
-        // ---------------------------------------------------------
-        // 2. Si NO hay receta normal, intentamos BATCH recipe
-        // ---------------------------------------------------------
-        if (BatchRecipeDatabase.Instance != null)
+        // La base ya devuelve la receta mas especifica para este stack.
+        RecipeData recipe = RecipeDatabase.Instance.FindRecipe(stack);
+
+        if (recipe != null)
         {
-            BatchRecipeData batchRecipe = BatchRecipeDatabase.Instance.FindBatchRecipe(stack);
+            if (TaskSystem.Instance != null)
+                TaskSystem.Instance.StartOrRefreshRecipeTask(stack, recipe);
 
-            if (batchRecipe != null)
-            {
-                if (TaskSystem.Instance != null)
-                    TaskSystem.Instance.StartBatchTask(stack, batchRecipe);
-
-                return;
-            }
+            return;
         }
 
-        // ---------------------------------------------------------
-        // 3. No matcheó nada → cancelar cualquier tarea del stack
-        // ---------------------------------------------------------
         if (TaskSystem.Instance != null)
             TaskSystem.Instance.CancelTaskForStack(stack);
     }
-    
-    private void OnDestroy()
+
+    private void UnsubscribeAllStacks()
     {
         foreach (CardStack stack in subscribedStacks)
         {

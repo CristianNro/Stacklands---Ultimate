@@ -8,6 +8,8 @@ using UnityEngine;
 public class BoardRoot : MonoBehaviour
 {
     public static BoardRoot Instance { get; private set; }
+    public event System.Action<CardStack> OnStackRegistered;
+    public event System.Action<CardStack> OnStackUnregistered;
 
     [Header("Board References")]
     [SerializeField] private RectTransform cardsContainer;
@@ -20,10 +22,12 @@ public class BoardRoot : MonoBehaviour
     [SerializeField] private float bottomPadding = 16f;
 
     private readonly List<CardInstance> activeCards = new();
+    private readonly List<CardStack> activeStacks = new();
 
     public RectTransform CardsContainer => cardsContainer;
     public RectTransform PlayArea => playArea;
     public IReadOnlyList<CardInstance> ActiveCards => activeCards;
+    public IReadOnlyList<CardStack> ActiveStacks => activeStacks;
 
     private void Awake()
     {
@@ -34,6 +38,8 @@ public class BoardRoot : MonoBehaviour
 
         if (playArea == null)
             playArea = cardsContainer;
+
+        RegisterExistingStacks();
     }
 
     // =========================================================
@@ -52,6 +58,23 @@ public class BoardRoot : MonoBehaviour
     {
         if (card == null) return;
         activeCards.Remove(card);
+    }
+
+    public void RegisterStack(CardStack stack)
+    {
+        if (stack == null) return;
+        if (activeStacks.Contains(stack)) return;
+
+        activeStacks.Add(stack);
+        OnStackRegistered?.Invoke(stack);
+    }
+
+    public void UnregisterStack(CardStack stack)
+    {
+        if (stack == null) return;
+        if (!activeStacks.Remove(stack)) return;
+
+        OnStackUnregistered?.Invoke(stack);
     }
 
     // =========================================================
@@ -145,6 +168,126 @@ public class BoardRoot : MonoBehaviour
     // Helpers
     // =========================================================
 
+    public Vector2 FindNearestFreePositionForRect(
+        Vector2 preferredPosition,
+        RectTransform movingRect,
+        float minimumVisibleFraction,
+        float searchStep,
+        int maxSearchRings,
+        RectTransform ignoreRect = null)
+    {
+        if (movingRect == null)
+            return preferredPosition;
+
+        Vector2 clampedPreferred = GetClampedPosition(preferredPosition, movingRect);
+
+        if (IsPositionFreeForRect(clampedPreferred, movingRect, minimumVisibleFraction, ignoreRect))
+            return clampedPreferred;
+
+        for (int ring = 1; ring <= maxSearchRings; ring++)
+        {
+            int samples = ring * 8;
+
+            for (int i = 0; i < samples; i++)
+            {
+                float angle = (Mathf.PI * 2f * i) / samples;
+                Vector2 candidate = clampedPreferred + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (searchStep * ring);
+                candidate = GetClampedPosition(candidate, movingRect);
+
+                if (IsPositionFreeForRect(candidate, movingRect, minimumVisibleFraction, ignoreRect))
+                    return candidate;
+            }
+        }
+
+        return clampedPreferred;
+    }
+
+    public Vector2 FindNearestFreePoint(
+        Vector2 preferredPosition,
+        float occupiedRadius,
+        float searchStep,
+        int maxSearchRings)
+    {
+        RectTransform boardRect = cardsContainer;
+        if (boardRect == null)
+            return preferredPosition;
+
+        Vector2 clampedPreferred = GetClampedPosition(preferredPosition, boardRect);
+
+        if (IsPointFree(clampedPreferred, occupiedRadius))
+            return clampedPreferred;
+
+        for (int ring = 1; ring <= maxSearchRings; ring++)
+        {
+            int samples = ring * 8;
+
+            for (int i = 0; i < samples; i++)
+            {
+                float angle = (Mathf.PI * 2f * i) / samples;
+                Vector2 candidate = clampedPreferred + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (searchStep * ring);
+                candidate = GetClampedPosition(candidate, boardRect);
+
+                if (IsPointFree(candidate, occupiedRadius))
+                    return candidate;
+            }
+        }
+
+        return clampedPreferred;
+    }
+
+    private void RegisterExistingStacks()
+    {
+        CardStack[] allStacks = FindObjectsByType<CardStack>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < allStacks.Length; i++)
+            RegisterStack(allStacks[i]);
+    }
+
+    private bool IsPositionFreeForRect(Vector2 position, RectTransform movingRect, float minimumVisibleFraction, RectTransform ignoreRect = null)
+    {
+        Vector2 movingSize = GetCardSizeInContainerSpace(movingRect);
+        if (movingSize == Vector2.zero)
+            return true;
+
+        for (int i = 0; i < activeCards.Count; i++)
+        {
+            CardInstance instance = activeCards[i];
+            if (instance == null || instance.RectTransform == null)
+                continue;
+
+            if (ignoreRect != null && instance.RectTransform == ignoreRect)
+                continue;
+
+            Vector2 otherPosition = instance.RectTransform.anchoredPosition;
+            float minSeparationX = movingSize.x * minimumVisibleFraction;
+            float minSeparationY = movingSize.y * minimumVisibleFraction;
+
+            bool overlapsX = Mathf.Abs(position.x - otherPosition.x) < minSeparationX;
+            bool overlapsY = Mathf.Abs(position.y - otherPosition.y) < minSeparationY;
+
+            if (overlapsX && overlapsY)
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool IsPointFree(Vector2 position, float occupiedRadius)
+    {
+        for (int i = 0; i < activeCards.Count; i++)
+        {
+            CardInstance instance = activeCards[i];
+            if (instance == null || instance.RectTransform == null)
+                continue;
+
+            float distance = Vector2.Distance(position, instance.RectTransform.anchoredPosition);
+            if (distance < occupiedRadius)
+                return false;
+        }
+
+        return true;
+    }
+
     private Vector2 GetCardSizeInContainerSpace(RectTransform cardRect)
     {
         Vector3 scale = cardRect.lossyScale;
@@ -153,5 +296,11 @@ public class BoardRoot : MonoBehaviour
             cardRect.rect.width * scale.x,
             cardRect.rect.height * scale.y
         );
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 }

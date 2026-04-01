@@ -1,26 +1,23 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using UnityEngine.UI;
 using StacklandsLike.Cards;
 
 // ============================================================
 // CardStack
 // ------------------------------------------------------------
-// Stack lógico + visual de cartas.
+// Stack logico + visual de cartas.
 //
 // REGLA ACTUAL:
 // - 1 carta  = carta suelta
 // - 2+ cartas = stack real
 //
-// En esta etapa el stack YA NO decide solo cuándo revisar recetas.
+// En esta etapa el stack ya no decide cuando buscar recetas.
 // Ahora solo:
 // - mantiene cartas
 // - mantiene layout
 // - avisa cambios
 // - ejecuta crafting si otro sistema se lo pide
-//
-// El que decide si hay receta o no ahora va a ser RecipeSystem.
 // ============================================================
 public class CardStack : MonoBehaviour
 {
@@ -30,49 +27,68 @@ public class CardStack : MonoBehaviour
     [Header("Visual Layout")]
     [SerializeField] private Vector2 stackOffset = new Vector2(0f, -28f);
 
-    // Evento para que otros sistemas (como RecipeSystem) reaccionen
-    // cuando cambia el contenido del stack.
+    // Evento para que otros sistemas reaccionen cuando cambia el stack.
     public event Action<CardStack> OnStackChanged;
 
-    // =========================================================
-    // Estado de crafting (todavía transicional)
-    // ---------------------------------------------------------
-    // El stack todavía EJECUTA el crafting, pero ya no decide
-    // por sí mismo cuándo buscar recetas.
-    // =========================================================
-    private GameObject progressBarRoot;
-    private Image progressFillImage;
-    private RectTransform progressFillRect;
+    private CardStackCraftingVisuals craftingVisuals;
+    private bool lifecycleRegistered;
 
     public IReadOnlyList<CardView> Cards => cards;
-
-    // Expone la receta actual solo para consulta.
-    public RecipeData ActiveRecipe => activeRecipe;
-    public bool IsCrafting => isCrafting;
-
-    // =========================================================
-    // Estado visual de crafting (transicional)
-    // ---------------------------------------------------------
-    // En esta etapa el tiempo real lo maneja TaskSystem.
-    // El stack solo mantiene la UI y sabe ejecutar el resultado.
-    // =========================================================
-    private RecipeData activeRecipe;
-    private bool isCrafting = false;
-
-    // =========================================================
-    // Helpers
-    // =========================================================
+    public RecipeData ActiveRecipe => craftingVisuals != null ? craftingVisuals.ActiveRecipe : null;
+    public bool IsCrafting => craftingVisuals != null && craftingVisuals.IsCrafting;
 
     private CardInstance GetCardInstance(CardView card)
     {
-        if (card == null) return null;
-        return card.GetComponent<CardInstance>();
+        return card != null ? card.Instance : null;
     }
 
     private CardData GetCardData(CardView card)
     {
         CardInstance instance = GetCardInstance(card);
         return instance != null ? instance.data : null;
+    }
+
+    private CardStackCraftingVisuals GetOrCreateCraftingVisuals()
+    {
+        if (craftingVisuals == null)
+            craftingVisuals = GetComponent<CardStackCraftingVisuals>();
+
+        if (craftingVisuals == null)
+            craftingVisuals = gameObject.AddComponent<CardStackCraftingVisuals>();
+
+        return craftingVisuals;
+    }
+
+    private void OnEnable()
+    {
+        if (lifecycleRegistered)
+            return;
+
+        lifecycleRegistered = true;
+
+        if (BoardRoot.Instance != null)
+            BoardRoot.Instance.RegisterStack(this);
+    }
+
+    private void OnDisable()
+    {
+        UnregisterLifecycleIfNeeded();
+    }
+
+    private void OnDestroy()
+    {
+        UnregisterLifecycleIfNeeded();
+    }
+
+    private void UnregisterLifecycleIfNeeded()
+    {
+        if (!lifecycleRegistered)
+            return;
+
+        lifecycleRegistered = false;
+
+        if (BoardRoot.Instance != null)
+            BoardRoot.Instance.UnregisterStack(this);
     }
 
     private RectTransform GetBoardContainer()
@@ -87,8 +103,7 @@ public class CardStack : MonoBehaviour
     }
 
     /// <summary>
-    /// Reparenta una carta al contenedor principal del board,
-    /// conservando la posición visual.
+    /// Reparenta una carta al board conservando la posicion visual.
     /// </summary>
     private void MoveCardToBoardKeepingVisualPosition(CardView card)
     {
@@ -121,9 +136,7 @@ public class CardStack : MonoBehaviour
     }
 
     /// <summary>
-    /// Limpia estados triviales:
-    /// - 0 cartas -> destruir stack
-    /// - 1 carta  -> volver a carta suelta
+    /// Limpia los estados triviales del stack.
     /// </summary>
     private void CleanupTrivialState()
     {
@@ -139,8 +152,8 @@ public class CardStack : MonoBehaviour
             CardView onlyCard = cards[0];
             CardInstance instance = GetCardInstance(onlyCard);
 
-            if (instance != null && instance.currentStack == this)
-                instance.currentStack = null;
+            if (instance != null && instance.CurrentStack == this)
+                instance.ClearCurrentStack(this);
 
             MoveCardToBoardKeepingVisualPosition(onlyCard);
 
@@ -150,62 +163,88 @@ public class CardStack : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // API pública principal
-    // =========================================================
-
     public void AddCard(CardView card)
     {
-        if (card == null) return;
-        if (cards.Contains(card)) return;
+        TryAddCard(card);
+    }
+
+    public bool TryAddCard(CardView card, bool logFailure = true)
+    {
+        if (card == null)
+            return false;
+
+        if (cards.Contains(card))
+            return false;
+
+        if (!CanAcceptCard(card, out string rejectionReason))
+        {
+            if (logFailure)
+                Debug.LogWarning($"[{name}] No se pudo agregar la carta al stack: {rejectionReason}");
+
+            return false;
+        }
 
         CardInstance instance = GetCardInstance(card);
-        CardStack previousStack = instance != null ? instance.currentStack : null;
+        CardStack previousStack = instance != null ? instance.CurrentStack : null;
 
         if (previousStack != null && previousStack != this)
-        {
             previousStack.RemoveCard(card);
-        }
 
         cards.Add(card);
         card.transform.SetParent(transform, worldPositionStays: false);
 
         if (instance != null)
-            instance.currentStack = this;
+            instance.SetCurrentStack(this);
 
         NotifyStackChanged();
+        return true;
     }
 
     public void AddCards(List<CardView> newCards)
     {
-        if (newCards == null || newCards.Count == 0) return;
+        TryAddCards(newCards);
+    }
+
+    public bool TryAddCards(IReadOnlyList<CardView> newCards, bool logFailure = true)
+    {
+        if (newCards == null || newCards.Count == 0)
+            return false;
+
+        if (!CanAcceptCards(newCards, out string rejectionReason))
+        {
+            if (logFailure)
+                Debug.LogWarning($"[{name}] No se pudieron agregar cartas al stack: {rejectionReason}");
+
+            return false;
+        }
 
         bool changed = false;
 
-        foreach (CardView card in newCards)
+        for (int i = 0; i < newCards.Count; i++)
         {
+            CardView card = newCards[i];
             if (card == null) continue;
             if (cards.Contains(card)) continue;
 
             CardInstance instance = GetCardInstance(card);
-            CardStack previousStack = instance != null ? instance.currentStack : null;
+            CardStack previousStack = instance != null ? instance.CurrentStack : null;
 
             if (previousStack != null && previousStack != this)
-            {
                 previousStack.RemoveCard(card);
-            }
 
             cards.Add(card);
             card.transform.SetParent(transform, worldPositionStays: false);
 
             if (instance != null)
-                instance.currentStack = this;
+                instance.SetCurrentStack(this);
 
             changed = true;
         }
 
         if (changed)
             NotifyStackChanged();
+
+        return changed;
     }
 
     public void RemoveCard(CardView card)
@@ -216,8 +255,8 @@ public class CardStack : MonoBehaviour
         cards.Remove(card);
 
         CardInstance instance = GetCardInstance(card);
-        if (instance != null && instance.currentStack == this)
-            instance.currentStack = null;
+        if (instance != null && instance.CurrentStack == this)
+            instance.ClearCurrentStack(this);
 
         MoveCardToBoardKeepingVisualPosition(card);
 
@@ -292,7 +331,6 @@ public class CardStack : MonoBehaviour
 
         CardStack newStack = newStackGO.AddComponent<CardStack>();
         newStack.stackOffset = this.stackOffset;
-
         List<CardView> movedCards = new List<CardView>();
 
         for (int i = index; i < cards.Count; i++)
@@ -303,8 +341,8 @@ public class CardStack : MonoBehaviour
             cards.Remove(movedCard);
 
             CardInstance movedInstance = GetCardInstance(movedCard);
-            if (movedInstance != null && movedInstance.currentStack == this)
-                movedInstance.currentStack = null;
+            if (movedInstance != null && movedInstance.CurrentStack == this)
+                movedInstance.ClearCurrentStack(this);
         }
 
         newStack.AddCards(movedCards);
@@ -317,10 +355,6 @@ public class CardStack : MonoBehaviour
         return newStack;
     }
 
-    // =========================================================
-    // Consultas públicas
-    // =========================================================
-
     public int GetCardIndex(CardView card)
     {
         return cards.IndexOf(card);
@@ -329,6 +363,128 @@ public class CardStack : MonoBehaviour
     public bool Contains(CardView card)
     {
         return cards.Contains(card);
+    }
+
+    public float GetCurrentTotalWeight()
+    {
+        float totalWeight = 0f;
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            CardInstance instance = GetCardInstance(cards[i]);
+            if (instance == null)
+                continue;
+
+            totalWeight += instance.GetWeight();
+        }
+
+        return totalWeight;
+    }
+
+    public bool IsPlayerMovable()
+    {
+        if (cards.Count == 0)
+            return false;
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            CardInstance instance = GetCardInstance(cards[i]);
+            if (instance == null || !instance.IsMovable())
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool CanDragFrom(CardView card)
+    {
+        if (card == null)
+            return false;
+
+        int index = cards.IndexOf(card);
+        if (index == -1)
+            return false;
+
+        for (int i = index; i < cards.Count; i++)
+        {
+            CardInstance instance = GetCardInstance(cards[i]);
+            if (instance == null || !instance.IsMovable())
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool CanAcceptCard(CardView card)
+    {
+        return CanAcceptCard(card, out _);
+    }
+
+    public bool CanAcceptCard(CardView card, out string rejectionReason)
+    {
+        rejectionReason = null;
+
+        if (card == null)
+        {
+            rejectionReason = "la carta es null";
+            return false;
+        }
+
+        CardInstance incomingInstance = GetCardInstance(card);
+        if (incomingInstance == null)
+        {
+            rejectionReason = "la carta entrante no tiene CardInstance";
+            return false;
+        }
+
+        List<CardInstance> incomingInstances = new List<CardInstance> { incomingInstance };
+        return StackRules.CanCardsExistInSameStack(GetCardInstancesSnapshot(), incomingInstances, out rejectionReason);
+    }
+
+    public bool CanAcceptCards(IReadOnlyList<CardView> incomingCards)
+    {
+        return CanAcceptCards(incomingCards, out _);
+    }
+
+    public bool CanAcceptCards(IReadOnlyList<CardView> incomingCards, out string rejectionReason)
+    {
+        rejectionReason = null;
+
+        if (incomingCards == null || incomingCards.Count == 0)
+        {
+            rejectionReason = "no hay cartas entrantes";
+            return false;
+        }
+
+        List<CardInstance> incomingInstances = new List<CardInstance>();
+
+        for (int i = 0; i < incomingCards.Count; i++)
+        {
+            CardInstance incomingInstance = GetCardInstance(incomingCards[i]);
+            if (incomingInstance == null)
+            {
+                rejectionReason = "una de las cartas entrantes no tiene CardInstance";
+                return false;
+            }
+
+            incomingInstances.Add(incomingInstance);
+        }
+
+        return StackRules.CanCardsExistInSameStack(GetCardInstancesSnapshot(), incomingInstances, out rejectionReason);
+    }
+
+    private List<CardInstance> GetCardInstancesSnapshot()
+    {
+        List<CardInstance> instances = new List<CardInstance>();
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            CardInstance instance = GetCardInstance(cards[i]);
+            if (instance != null)
+                instances.Add(instance);
+        }
+
+        return instances;
     }
 
     public List<CardData> GetCardDataList()
@@ -346,7 +502,7 @@ public class CardStack : MonoBehaviour
     }
 
     /// <summary>
-    /// Cuenta cuántas cartas del stack tienen un tag dado.
+    /// Cuenta cuantas cartas del stack tienen un tag dado.
     /// </summary>
     public int CountCardsWithTag(string tag)
     {
@@ -360,7 +516,7 @@ public class CardStack : MonoBehaviour
             CardView card = cards[i];
             if (card == null) continue;
 
-            CardInstance instance = card.GetComponent<CardInstance>();
+            CardInstance instance = GetCardInstance(card);
             if (instance == null) continue;
 
             if (instance.HasTag(tag))
@@ -370,10 +526,6 @@ public class CardStack : MonoBehaviour
         return count;
     }
 
-    /// <summary>
-    /// Devuelve true si alguna carta del stack tiene el tag indicado.
-    /// Usa CardInstance.HasTag(...) para consultar la data runtime.
-    /// </summary>
     public bool ContainsCardWithTag(string tag)
     {
         if (string.IsNullOrWhiteSpace(tag))
@@ -384,7 +536,7 @@ public class CardStack : MonoBehaviour
             CardView card = cards[i];
             if (card == null) continue;
 
-            CardInstance instance = card.GetComponent<CardInstance>();
+            CardInstance instance = GetCardInstance(card);
             if (instance == null) continue;
 
             if (instance.HasTag(tag))
@@ -416,9 +568,6 @@ public class CardStack : MonoBehaviour
         return cards.Count == 1;
     }
 
-    /// <summary>
-    /// Devuelve el tamaño total visual del stack.
-    /// </summary>
     public Vector2 GetVisualSize()
     {
         if (cards == null || cards.Count == 0)
@@ -446,10 +595,6 @@ public class CardStack : MonoBehaviour
         return new Vector2(cardWidth + totalExtraX, cardHeight + totalExtraY);
     }
 
-    /// <summary>
-    /// Devuelve cuánto se extiende visualmente el stack hacia cada lado
-    /// respecto del root.
-    /// </summary>
     public void GetVisualExtents(out float left, out float right, out float bottom, out float top)
     {
         left = 0f;
@@ -509,233 +654,49 @@ public class CardStack : MonoBehaviour
         top = maxY;
     }
 
-    // =========================================================
-    // Notificación central
-    // =========================================================
-
-    /// <summary>
-    /// Avisa que cambió el contenido del stack.
-    ///
-    /// IMPORTANTE:
-    /// En esta etapa ya NO revisa recetas acá adentro.
-    /// Solo:
-    /// - refresca layout
-    /// - notifica evento
-    /// </summary>
     private void NotifyStackChanged()
     {
         RefreshLayout();
         OnStackChanged?.Invoke(this);
     }
 
-    // =========================================================
-    // Crafting controlado por RecipeSystem
-    // =========================================================
-
-    /// <summary>
-    /// Prepara y muestra la UI visual cuando TaskSystem le dice que hay
-    /// una tarea corriendo.
-    /// </summary>
     public void StartCraftingVisuals(RecipeData recipe)
     {
-        if (recipe == null) return;
-
-        // Si ya está mostrando la misma receta, no hace falta reiniciar.
-        if (isCrafting && activeRecipe == recipe)
-            return;
-
-        activeRecipe = recipe;
-        isCrafting = true;
-
-        CreateProgressBar();
-        SetCraftingProgress(0f);
-
+        GetOrCreateCraftingVisuals().StartVisuals(recipe);
     }
-    
 
-    /// <summary>
-    /// Detiene la UI visual del crafting actual.
-    /// El tiempo real ya no lo maneja el stack.
-    /// </summary>
     public void StopCraftingVisuals()
     {
-        activeRecipe = null;
-        isCrafting = false;
-
-        DestroyProgressBar();
+        if (craftingVisuals != null)
+            craftingVisuals.StopVisuals();
     }
 
-    /// <summary>
-    /// Actualiza visualmente el progreso del crafting.
-    /// progress01 debe venir normalizado entre 0 y 1.
-    /// </summary>
     public void SetCraftingProgress(float progress01)
     {
-        if (!isCrafting) return;
-        if (progressFillRect == null) return;
-
-        float progress = Mathf.Clamp01(progress01);
-        float fullWidth = 100f;
-
-        progressFillRect.sizeDelta = new Vector2(fullWidth * progress, 0f);
+        if (craftingVisuals != null)
+            craftingVisuals.SetProgress(progress01);
     }
 
-    /// <summary>
-    /// Completa una receta cuando TaskSystem informa que terminó la tarea.
-    /// Por ahora el stack sigue ejecutando el resultado final.
-    /// Más adelante esto también se va a separar.
-    /// </summary>
-    public void CompleteRecipeFromTask(RecipeData recipe)
+    public void DestroyCardForSystem(CardView card)
     {
-        if (recipe == null)
-        {
-            StopCraftingVisuals();
+        if (card == null)
             return;
-        }
 
-        CardData rolledResult = recipe.RollResult();
+        CardInstance instance = GetCardInstance(card);
+        cards.Remove(card);
 
-        if (rolledResult == null)
-        {
-            StopCraftingVisuals();
-            Debug.LogWarning($"[{name}] La receta no devolvió ningún resultado válido.");
-            return;
-        }
+        if (instance != null && instance.CurrentStack == this)
+            instance.ClearCurrentStack(this);
 
-        Debug.Log($"[{name}] Receta completada. Resultado sorteado: {rolledResult.cardName}");
+        Destroy(card.gameObject);
+    }
 
-        Vector2 spawnPos = GetStackPosition();
-        List<CardView> cardsToProcess = new List<CardView>(cards);
-
-        foreach (CardView card in cardsToProcess)
-        {
-            if (card == null) continue;
-
-            CardInstance instance = card.GetComponent<CardInstance>();
-            if (instance == null || instance.data == null) continue;
-
-            CardData cardData = instance.data;
-
-            // --------------------------------------------------------
-            // 1. Intentamos usar regla explícita de la receta
-            // --------------------------------------------------------
-            RecipeIngredientConsumeMode? explicitMode = recipe.GetConsumeModeForCard(cardData);
-
-            if (explicitMode.HasValue)
-            {
-                switch (explicitMode.Value)
-                {
-                    case RecipeIngredientConsumeMode.None:
-                        // No pasa nada, la carta queda intacta.
-                        break;
-
-                    case RecipeIngredientConsumeMode.ConsumeOneUse:
-                        // Consume un uso; si se queda sin usos, se destruye.
-                        if (instance.ConsumeUseIfNeeded())
-                        {
-                            cards.Remove(card);
-
-                            if (instance.currentStack == this)
-                                instance.currentStack = null;
-
-                            Destroy(card.gameObject);
-                        }
-                        break;
-
-                    case RecipeIngredientConsumeMode.ConsumeEntireCard:
-                        // Se destruye directamente, sin mirar usos.
-                        cards.Remove(card);
-
-                        if (instance.currentStack == this)
-                            instance.currentStack = null;
-
-                        Destroy(card.gameObject);
-                        break;
-                }
-
-                // Si hubo regla explícita, no aplicamos fallback.
-                continue;
-            }
-
-            // --------------------------------------------------------
-            // 2. Fallback al comportamiento viejo
-            // --------------------------------------------------------
-            // Si la receta no define regla para esta carta, conservamos
-            // el comportamiento anterior para no romper recetas existentes.
-            if (instance.ConsumeUseIfNeeded())
-            {
-                cards.Remove(card);
-
-                if (instance.currentStack == this)
-                    instance.currentStack = null;
-
-                Destroy(card.gameObject);
-            }
-        }
-
-        if (CardSpawner.Instance != null)
-            CardSpawner.Instance.SpawnAnimated(rolledResult, spawnPos);
-
-        StopCraftingVisuals();
-
+    public void FinalizeCraftingMutation()
+    {
         CleanupTrivialState();
 
         if (this != null && gameObject != null && cards.Count >= 2)
             NotifyStackChanged();
     }
 
-    // =========================================================
-    // UI de progreso (transicional)
-    // =========================================================
-
-    private void CreateProgressBar()
-    {
-        if (progressBarRoot != null) return;
-
-        progressBarRoot = new GameObject("CraftProgressBar", typeof(RectTransform));
-        progressBarRoot.transform.SetParent(transform, false);
-
-        RectTransform rootRT = progressBarRoot.GetComponent<RectTransform>();
-        rootRT.anchoredPosition = new Vector2(0f, 65f);
-        rootRT.sizeDelta = new Vector2(100f, 12f);
-        rootRT.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRT.anchorMax = new Vector2(0.5f, 0.5f);
-        rootRT.pivot = new Vector2(0.5f, 0.5f);
-
-        GameObject backgroundGO = new GameObject("Background", typeof(RectTransform), typeof(Image));
-        backgroundGO.transform.SetParent(progressBarRoot.transform, false);
-
-        RectTransform bgRT = backgroundGO.GetComponent<RectTransform>();
-        bgRT.anchorMin = Vector2.zero;
-        bgRT.anchorMax = Vector2.one;
-        bgRT.offsetMin = Vector2.zero;
-        bgRT.offsetMax = Vector2.zero;
-
-        Image bgImage = backgroundGO.GetComponent<Image>();
-        bgImage.color = new Color(0f, 0f, 0f, 0.6f);
-
-        GameObject fillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        fillGO.transform.SetParent(backgroundGO.transform, false);
-
-        progressFillRect = fillGO.GetComponent<RectTransform>();
-        progressFillRect.anchorMin = new Vector2(0f, 0f);
-        progressFillRect.anchorMax = new Vector2(0f, 1f);
-        progressFillRect.pivot = new Vector2(0f, 0.5f);
-        progressFillRect.anchoredPosition = Vector2.zero;
-        progressFillRect.sizeDelta = new Vector2(0f, 0f);
-
-        progressFillImage = fillGO.GetComponent<Image>();
-        progressFillImage.color = new Color(0.2f, 0.9f, 0.2f, 1f);
-    }
-
-    private void DestroyProgressBar()
-    {
-        if (progressBarRoot != null)
-        {
-            Destroy(progressBarRoot);
-            progressBarRoot = null;
-            progressFillImage = null;
-            progressFillRect = null;
-        }
-    }
 }

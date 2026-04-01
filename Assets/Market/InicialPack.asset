@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d27a79b8e7c4d6891347051f36d47ef, type: 3}
+  m_Name: InicialPack
+  m_EditorClassIdentifier: Assembly-CSharp::PresetMarketPackData
+  displayName: InicialPack
+  price: 1
+  packCard: {fileID: 11400000, guid: 36e2511aa20ec2241bc5d565c5cc689d, type: 2}
+  fixedCards:
+  - {fileID: 11400000, guid: 05e07909cf0dac447893638a0a93a619, type: 2}
+  - {fileID: 11400000, guid: b28f6a4f7bd292441922d34c34089c8c, type: 2}

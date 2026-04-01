@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1dcb9df35554984a7ed8fe8e4bcb2f1, type: 3}
+  m_Name: Cofre de Oro
+  m_EditorClassIdentifier: Assembly-CSharp::ContainerCardData
+  id: 
+  cardName: 
+  displayName: 
+  description: 
+  cardType: 7
+  rarity: 0
+  cardImage: {fileID: -8929714730241205940, guid: 9be2b45dd4e77cd4cb01d7a06fc97578, type: 3}
+  stackable: 1
+  isMovable: 1
+  weight: 1
+  value: 0
+  isCurrency: 1
+  currencyType: 1
+  maxUses: 0
+  tags:
+  - normal currency
+  capacity: 50
+  listMode: 0
+  listedCardTypes: 
+  releaseRadius: 80
+  maxCardsReleasedPerOpen: 5

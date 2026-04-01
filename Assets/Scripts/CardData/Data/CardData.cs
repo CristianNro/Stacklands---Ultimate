@@ -18,18 +18,21 @@ public abstract class CardData : ScriptableObject
     public Sprite cardImage;
 
     [Header("Interaction")]
+    // Future contract: stack logic must eventually respect this.
     public bool stackable = true;
+    // Future contract: drag/drop logic must eventually respect this.
     public bool isMovable = true;
-    public bool isConsumable = false;
-    public bool isDestroyable = true;
 
     [Header("Balance")]
+    // Future contract: stack capacity will be limited by total weight.
     public float weight = 1f;
     public int value = 0;
 
-    [Header("Durability")]
+    [Header("Economy")]
+    public bool isCurrency = false;
+    public CurrencyType currencyType = CurrencyType.None;
 
-    public bool consumeOnRecipe = true;
+    [Header("Uses")]
     public int maxUses = 0;
 
     [Header("Tags")]

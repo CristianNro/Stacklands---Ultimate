@@ -13,7 +13,8 @@ namespace StacklandsLike.Cards
         Item,
         Terrain,
         Food,
-        Tool
+        Tool,
+        Container
     }
 
     // ============================================================
@@ -26,6 +27,75 @@ namespace StacklandsLike.Cards
         None,               // La carta queda intacta
         ConsumeOneUse,      // Pierde 1 uso; si llega a 0 se destruye
         ConsumeEntireCard   // Se destruye directamente
+    }
+
+    // ============================================================
+    // RecipeMatchMode
+    // ------------------------------------------------------------
+    // Define como una receta decide si un stack aplica o no.
+    // ============================================================
+    public enum RecipeMatchMode
+    {
+        ExactIngredients,
+        TagRequirementsOnly
+    }
+
+    // ============================================================
+    // RecipeExecutionMode
+    // ------------------------------------------------------------
+    // Single:
+    // - se ejecuta una sola vez
+    //
+    // RepeatWhileValid:
+    // - consume una carta repetible por ciclo
+    // - sigue mientras el stack siga siendo valido
+    // ============================================================
+    public enum RecipeExecutionMode
+    {
+        Single,
+        RepeatWhileValid
+    }
+
+    // ============================================================
+    // ContainerListMode
+    // ------------------------------------------------------------
+    // AllowOnlyListed:
+    // - solo acepta cartas presentes en la lista
+    //
+    // BlockListed:
+    // - acepta cualquier carta excepto las de la lista
+    // ============================================================
+    public enum ContainerListMode
+    {
+        AllowOnlyListed,
+        BlockListed
+    }
+
+    // ============================================================
+    // CurrencyType
+    // ------------------------------------------------------------
+    // Define el tipo explicito de moneda que representa una carta.
+    // None implica que la carta no participa del sistema monetario.
+    // ============================================================
+    public enum CurrencyType
+    {
+        None,
+        Normal
+    }
+
+    // ============================================================
+    // CurrencyFilterMode
+    // ------------------------------------------------------------
+    // AllowOnlyListed:
+    // - solo acepta tipos presentes en la lista
+    //
+    // BlockListed:
+    // - acepta cualquier tipo excepto los presentes en la lista
+    // ============================================================
+    public enum CurrencyFilterMode
+    {
+        AllowOnlyListed,
+        BlockListed
     }
 
     // -------------------------------------------------
@@ -90,79 +160,4 @@ namespace StacklandsLike.Cards
         Misc
     }
 
-    // -------------------------------------------------
-    // Tipo de daño (para combate)
-    // -------------------------------------------------
-    public enum DamageType
-    {
-        Physical,
-        Fire,
-        Poison,
-        Magic,
-        True
-    }
-
-    // -------------------------------------------------
-    // Tipo de edificio
-    // -------------------------------------------------
-    public enum BuildingType
-    {
-        Housing,
-        Production,
-        Storage,
-        Defense,
-        Utility
-    }
-
-    // -------------------------------------------------
-    // Tipo de tarea de unidad
-    // -------------------------------------------------
-    public enum TaskType
-    {
-        None,
-        Gathering,
-        Crafting,
-        Building,
-        Farming,
-        Combat,
-        Resting,
-        Transporting
-    }
-
-    // -------------------------------------------------
-    // Estado de una carta
-    // -------------------------------------------------
-    public enum CardState
-    {
-        Idle,
-        Dragging,
-        InStack,
-        Working,
-        Fighting,
-        Resting,
-        Disabled,
-        Destroyed
-    }
-
-    // -------------------------------------------------
-    // Estado de construcción
-    // -------------------------------------------------
-    public enum ConstructionState
-    {
-        NotBuilt,
-        UnderConstruction,
-        Completed,
-        Damaged
-    }
-
-    // -------------------------------------------------
-    // Estado de combate
-    // -------------------------------------------------
-    public enum CombatState
-    {
-        None,
-        Attacking,
-        Defending,
-        Dead
-    }
 }

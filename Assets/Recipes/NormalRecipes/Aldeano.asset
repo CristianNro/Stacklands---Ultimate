@@ -17,7 +17,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 05e07909cf0dac447893638a0a93a619, type: 2}
   - {fileID: 11400000, guid: 110f6cc2235f3134aac30445e590e454, type: 2}
   result: {fileID: 11400000, guid: 05e07909cf0dac447893638a0a93a619, type: 2}
+  possibleResults: []
   craftTime: 1
+  tagRequirements:
+  - tag: Aldeano
+    minCount: 0
+    isRepeatable: 0
+    ignoreMatchingCardsInIngredientCheck: 0
   ingredientRules:
   - cardId: 1
     consumeMode: 2

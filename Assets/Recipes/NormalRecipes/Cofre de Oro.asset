@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9e17444dc1bde947a8fb04d666c416c, type: 3}
+  m_Name: Cofre de Oro
+  m_EditorClassIdentifier: Assembly-CSharp::RecipeData
+  id: Cofre
+  displayName: 
+  matchMode: 0
+  executionMode: 0
+  ingredients:
+  - {fileID: 11400000, guid: c46b585db83cfc44681cfef70f2ce71c, type: 2}
+  - {fileID: 11400000, guid: c46b585db83cfc44681cfef70f2ce71c, type: 2}
+  - {fileID: 11400000, guid: b28f6a4f7bd292441922d34c34089c8c, type: 2}
+  - {fileID: 11400000, guid: c46b585db83cfc44681cfef70f2ce71c, type: 2}
+  tagRequirements: []
+  result: {fileID: 11400000, guid: 485f17e454e965f4cbd472e18a7751f5, type: 2}
+  possibleResults: []
+  craftTime: 5
+  ingredientRules:
+  - cardId: Pila de monedas
+    consumeMode: 2

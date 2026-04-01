@@ -6,5 +6,4 @@ public class ResourceCardData : CardData
 {
     [Header("Resource")]
     public ResourceType resourceType;
-    public int maxStack = 10;
 }

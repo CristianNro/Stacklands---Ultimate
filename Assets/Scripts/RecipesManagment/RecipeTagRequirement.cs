@@ -26,11 +26,14 @@ using UnityEngine;
 public class RecipeTagRequirement
 {
     [Header("Tag Requirement")]
+    // Tag que la receta espera encontrar en el stack.
     public string tag;
 
     [Min(1)]
+    // Cantidad minima de cartas con este tag para que la receta sea valida.
     public int minCount = 1;
 
     [Header("Matching Behavior")]
+    // Si esta activo, estas cartas no cuentan como ingredientes exactos al comparar.
     public bool ignoreMatchingCardsInIngredientCheck = true;
 }

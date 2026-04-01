@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99d561ea98da8fa4ea70169d6f5ac408, type: 3}
+  m_Name: Tabla de Madera
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
+  id: Tabla de Madera
+  cardName: 
+  displayName: 
+  description: 
+  cardType: 0
+  rarity: 0
+  cardImage: {fileID: 5085108448704692140, guid: a76e26ba3597ad244a3adcab6e9fa2c1, type: 3}
+  stackable: 1
+  isMovable: 1
+  isConsumable: 1
+  isDestroyable: 1
+  weight: 1
+  value: 6
+  consumeOnRecipe: 1
+  maxUses: 1
+  tags: []
+  resourceType: 0
+  maxStack: 10

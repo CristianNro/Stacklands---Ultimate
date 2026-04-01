@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // ============================================================
@@ -10,6 +11,30 @@ using UnityEngine;
 // ============================================================
 public static class CardStackFactory
 {
+    public static bool CanCreateStack(CardView firstCard, IReadOnlyList<CardView> additionalCards)
+    {
+        CardInstance firstInstance = firstCard != null ? firstCard.GetComponent<CardInstance>() : null;
+        if (firstInstance == null || additionalCards == null || additionalCards.Count == 0)
+            return false;
+
+        List<CardInstance> additionalInstances = new List<CardInstance>();
+
+        for (int i = 0; i < additionalCards.Count; i++)
+        {
+            CardInstance additionalInstance = additionalCards[i] != null ? additionalCards[i].GetComponent<CardInstance>() : null;
+            if (additionalInstance == null)
+                return false;
+
+            additionalInstances.Add(additionalInstance);
+        }
+
+        return StackRules.CanCardsExistInSameStack(
+            existingCards: null,
+            incomingCards: BuildIncomingList(firstInstance, additionalInstances),
+            out _
+        );
+    }
+
     public static CardStack CreateStack(CardView firstCard, CardView secondCard)
     {
         if (firstCard == null || secondCard == null)
@@ -17,6 +42,9 @@ public static class CardStackFactory
             Debug.LogWarning("No se puede crear stack: una de las cartas es null.");
             return null;
         }
+
+        if (!CanCreateStack(firstCard, new List<CardView> { secondCard }))
+            return null;
 
         RectTransform boardContainer = null;
 
@@ -47,9 +75,25 @@ public static class CardStackFactory
         CardStack stack = stackGO.AddComponent<CardStack>();
 
         // Agregamos primero la carta destino y luego la arrastrada.
-        stack.AddCard(firstCard);
-        stack.AddCard(secondCard);
+        if (!stack.TryAddCard(firstCard) || !stack.TryAddCard(secondCard))
+        {
+            Object.Destroy(stackGO);
+            return null;
+        }
 
         return stack;
+    }
+
+    private static List<CardInstance> BuildIncomingList(CardInstance firstInstance, List<CardInstance> additionalInstances)
+    {
+        List<CardInstance> instances = new List<CardInstance>();
+
+        if (firstInstance != null)
+            instances.Add(firstInstance);
+
+        if (additionalInstances != null)
+            instances.AddRange(additionalInstances);
+
+        return instances;
     }
 }

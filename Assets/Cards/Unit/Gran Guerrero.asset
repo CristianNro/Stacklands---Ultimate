@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73b5cd780103ef24b939794a8b25c289, type: 3}
+  m_Name: Gran Guerrero
+  m_EditorClassIdentifier: Assembly-CSharp::UnitCardData
+  id: Gran Guerrero
+  cardName: Gran Guerrero
+  displayName: Gran Guerrero
+  description: Un Gran Guerrero
+  cardType: 1
+  rarity: 3
+  cardImage: {fileID: -5681820303789731919, guid: a739558565cc18442bf548541c140a64, type: 3}
+  stackable: 1
+  isMovable: 1
+  isConsumable: 0
+  isDestroyable: 1
+  weight: 1
+  value: 0
+  consumeOnRecipe: 0
+  maxUses: 0
+  tags:
+  - Worker
+  unitRole: 2
+  faction: 0
+  maxHealth: 200
+  damage: 50
+  armor: 50
+  attackSpeed: 25
+  attackRange: 40
+  workSpeed: 20
+  maxHunger: 1
+  hungerDecayRate: 1
+  canEquipWeapon: 1
+  canEquipArmor: 1
+  canEquipTool: 0

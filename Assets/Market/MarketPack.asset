@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af6d639dfd597a441bf96b1773229e35, type: 3}
+  m_Name: MarketPack
+  m_EditorClassIdentifier: Assembly-CSharp::MarketPackData
+  displayName: Pack1
+  price: 10
+  packCard: {fileID: 11400000, guid: 2d5ee0c765aa2d54da2e5c0cae33c616, type: 2}
+  cardsToRoll: 5
+  possibleCards:
+  - result: {fileID: 11400000, guid: 34208936c0ddb3b47b113efe1f0ec7f9, type: 2}
+    weight: 5
+  - result: {fileID: 11400000, guid: 593c7c7500eedc2479d2f9b8262abf1d, type: 2}
+    weight: 6
+  - result: {fileID: 11400000, guid: 75e231fedac2dc6469509c3cee152302, type: 2}
+    weight: 5
+  - result: {fileID: 11400000, guid: 05e07909cf0dac447893638a0a93a619, type: 2}
+    weight: 3
+  - result: {fileID: 11400000, guid: 2bed0d90158d03c43ada1e4be094e5bc, type: 2}
+    weight: 6
+  - result: {fileID: 11400000, guid: f796a89edfb600e44833312ac4cf2583, type: 2}
+    weight: 7
+  - result: {fileID: 11400000, guid: c46b585db83cfc44681cfef70f2ce71c, type: 2}
+    weight: 7

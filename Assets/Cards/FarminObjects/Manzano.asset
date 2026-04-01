@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99d561ea98da8fa4ea70169d6f5ac408, type: 3}
+  m_Name: Manzano
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
+  id: Manzano
+  cardName: Manzano
+  displayName: Manzano
+  description: Da manzanas arenosas
+  cardType: 0
+  rarity: 0
+  cardImage: {fileID: -656573927433736723, guid: d26dafbd602fc7b4cb909f56032907f3, type: 3}
+  stackable: 1
+  isMovable: 1
+  isConsumable: 1
+  isDestroyable: 1
+  weight: 1
+  value: 5
+  consumeOnRecipe: 1
+  maxUses: 5
+  tags:
+  - Manzano
+  resourceType: 0
+  maxStack: 10
