@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9e17444dc1bde947a8fb04d666c416c, type: 3}
+  m_Name: FarmManzano
+  m_EditorClassIdentifier: Assembly-CSharp::RecipeData
+  id: FarmManzano
+  displayName: 
+  matchMode: 0
+  executionMode: 1
+  ingredients:
+  - {fileID: 11400000, guid: 34208936c0ddb3b47b113efe1f0ec7f9, type: 2}
+  capabilityRequirements:
+  - capability: 1
+    minCount: 1
+    maxCount: 1
+    ignoreMatchingCardsInIngredientCheck: 1
+  result: {fileID: 0}
+  possibleResults:
+  - result: {fileID: 11400000, guid: 1c35e4e3146c36b41863b37423906a12, type: 2}
+    weight: 1
+  - result: {fileID: 11400000, guid: c46b585db83cfc44681cfef70f2ce71c, type: 2}
+    weight: 2
+  craftTime: 5
+  durationCapabilityModifiers:
+  - capability: 2
+    multiplier: 0.8
+    maxApplications: 3
+  - capability: 11
+    multiplier: 3
+    maxApplications: 1
+  ingredientRules:
+  - card: {fileID: 11400000, guid: 34208936c0ddb3b47b113efe1f0ec7f9, type: 2}
+    requiredCount: 1
+    allowAdditionalCopies: 1
+    consumeMode: 1

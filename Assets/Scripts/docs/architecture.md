@@ -19,7 +19,7 @@ Current runtime flow:
 ## Main current system areas
 
 - card definitions: `CardData/*`
-- runtime card state: `CardInstance`, `UnitRuntime`, `BuildingRuntime`, `ContainerRuntime`, `MarketPackRuntime`
+- runtime card state: `CardInstance`, `UnitRuntime`, `BuildingRuntime`, `ContainerRuntime`, `MarketPackRuntime`, `FoodRuntime`, `CardTransformationRuntime`
 - visual card state: `CardView`
 - board and bounds: `BoardRoot`
 - spawning and positioning: `CardSpawner`
@@ -27,6 +27,10 @@ Current runtime flow:
 - stack ownership and layout: `CardStack`, `CardStackFactory`, `StackRules`
 - recipes: `RecipeData`, `RecipeDatabase`, `RecipeSystem`
 - timed tasks: `TaskSystem`, `RecipeTask`
+- timed-task time source: `GameTimeService`
+- day cycle: `GameTimeService`, `DayCycleCoordinator`, `DailyUpkeepSystem`, `DayEventSystem`, `DayEventExecutor`
+- single-card transformations: `CardTransformationRule`, `CardTransformationRuntime`, `CardTransformationSystem`, `CardTransformationExecutor`
+- combat: `CombatEncounter`, `CombatParticipantRuntime`, `CombatEncounterSystem`, `CombatEncounterResolver`, `CombatDamageResolver`, `CombatLootDropSystem`, `CombatFormationUtility`, `CombatEncounterVisuals`, `CombatEncounterFeedback`, `CombatFloatingDamagePresenter`
 - economy/market: `Market/*`
 - container persistence: `ContainerStorageService`
 
@@ -41,9 +45,9 @@ Current runtime flow:
 
 - There is too much direct coupling between systems.
 - Several `MonoBehaviours` mix domain rules and presentation.
-- Important rules still depend on string tags and string ids.
+- Some recipe and economy flows still carry residual scene-bound runtime coupling, even after the stronger typed recipe and market boundaries added in recent phases.
 - Some systems duplicate business logic instead of consuming shared services.
-- Runtime state persistence is incomplete.
+- Runtime state persistence is still partial for future richer card-state systems.
 
 One recent improvement is that stack acceptance rules are now centralized through `StackRules` instead of living only as scattered checks.
 
@@ -51,7 +55,15 @@ Another recent improvement is that `CardInstance` now owns the basic runtime fla
 
 The next boundary already started to move too: runtime consumers such as drag and market flows are beginning to query specialized capabilities through `CardInstance` instead of discovering sibling components ad hoc.
 
-The recipe flow also improved: `RecipeSystem` now bootstraps existing stacks once and then reacts to stack lifecycle events instead of scanning all stacks every frame.
+The interaction boundary also started to move: `CardDrag` now builds a drop context, resolves a structured `CardDropTargetInfo`, and delegates drop outcome resolution to `CardDropResolver`, while market, container and stack drop branches are already split into dedicated handlers instead of carrying all end-of-drag branching inline.
+
+That interaction layer also now has an explicit ordered handler pipeline, so drop precedence no longer depends only on incidental `if` ordering inside one large method.
+
+That same interaction boundary is now also more tolerant to player overlap intent: stack targeting can fall back to real rect coverage against underlying cards, not only the cursor raycast, and important targets can now expose themselves through explicit `ICardDropTargetSource` contracts before hierarchy lookup fallback is used.
+
+The recipe flow also improved: `RecipeSystem` now bootstraps existing stacks once, subscribes explicitly when `BoardRoot` becomes available, and then reacts to stack lifecycle events instead of scanning all stacks every frame.
+
+World-time also now has a clearer shape: `GameTimeService` acts as the shared clock, while `DayCycleCoordinator`, `DailyUpkeepSystem`, `DayEventSystem` and `DayEventExecutor` keep day progression, food upkeep and day-start world events outside recipes, tasks and board authority.
 
 The economy area also started to improve: shared market value-combination and currency-consumption logic now lives in `MarketEconomyService` instead of being duplicated inside both buy and sell slots.
 
@@ -62,6 +74,8 @@ The currency contract also became explicit in the card model: market rules can n
 Containers also became narrower as a system boundary: they now behave only as card storage with typed allow/block filters and controlled release, while future scene travel should move to a dedicated portal system.
 
 Container persistence also started to harden: stored content now uses an explicit card snapshot shape with separate definition data and runtime state instead of a flat ad hoc record.
+
+That migration path is now complete in runtime code too: gameplay tags have been removed from active contracts in favor of explicit typed capabilities and capability-based recipe requirements.
 
 ## Core architectural rule
 

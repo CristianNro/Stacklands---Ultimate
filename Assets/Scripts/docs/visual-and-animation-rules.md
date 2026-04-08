@@ -14,6 +14,7 @@ The project already uses visuals for:
 - stack offsets
 - crafting progress display
 - runtime value labels on cards
+- single-card transformation progress display
 
 ## Current rule
 

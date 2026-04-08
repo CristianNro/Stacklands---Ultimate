@@ -14,20 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
   id: Arbol
   cardName: Arbol
-  displayName: Es un Pino
-  description: Proyecta una gran sombra
-  cardType: 0
+  displayName: Tree
+  description: Es un pino
+  cardType: 4
   rarity: 0
-  cardImage: {fileID: -8074543673015462883, guid: 5fdb28c5f77cf7d49a78c757dfab9014, type: 3}
+  cardImage: {fileID: -6307406724769728823, guid: 009a4e64735bb1143a1414261f812a13, type: 3}
+  cardIcon: {fileID: 6853316077166303748, guid: 304699b285cdc734dad6885d7651bf8e, type: 3}
   stackable: 1
   isMovable: 1
-  isConsumable: 1
-  isDestroyable: 1
   weight: 1
   value: 3
-  consumeOnRecipe: 1
+  isCurrency: 0
+  currencyType: 0
   maxUses: 3
-  tags:
-  - Arbol
+  capabilities: 02000000
   resourceType: 0
-  maxStack: 10

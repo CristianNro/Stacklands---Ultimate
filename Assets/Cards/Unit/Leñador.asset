@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73b5cd780103ef24b939794a8b25c289, type: 3}
+  m_Name: "Le\xF1ador"
+  m_EditorClassIdentifier: Assembly-CSharp::UnitCardData
+  id: "Le\xF1ador"
+  cardName: "Le\xF1ador"
+  displayName: "Le\xF1ador"
+  description: Un gran trabajador
+  cardType: 1
+  rarity: 0
+  cardImage: {fileID: -6620443678240376230, guid: 5bbb4f31e32a01741971f227e1c274b8, type: 3}
+  cardIcon: {fileID: 4633703303542665526, guid: e11911d05f00a4a4db869fe723b16ae9, type: 3}
+  stackable: 1
+  isMovable: 1
+  weight: 1
+  value: 20
+  isCurrency: 0
+  currencyType: 0
+  maxUses: 0
+  capabilities: 0200000001000000
+  unitRole: 0
+  faction: 0
+  maxHealth: 10
+  maxHunger: 1

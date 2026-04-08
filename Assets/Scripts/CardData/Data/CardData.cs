@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using StacklandsLike.Cards;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public abstract class CardData : ScriptableObject
 {
@@ -16,15 +19,16 @@ public abstract class CardData : ScriptableObject
 
     [Header("Visual")]
     public Sprite cardImage;
+    public Sprite cardIcon;
 
     [Header("Interaction")]
-    // Future contract: stack logic must eventually respect this.
+    // Active contract: stack logic must respect this.
     public bool stackable = true;
-    // Future contract: drag/drop logic must eventually respect this.
+    // Active contract: drag/drop logic must respect this.
     public bool isMovable = true;
 
     [Header("Balance")]
-    // Future contract: stack capacity will be limited by total weight.
+    // Active contract: stack capacity and stack rules depend on total weight.
     public float weight = 1f;
     public int value = 0;
 
@@ -35,6 +39,21 @@ public abstract class CardData : ScriptableObject
     [Header("Uses")]
     public int maxUses = 0;
 
-    [Header("Tags")]
-    public List<string> tags = new();
+    [Header("Capabilities")]
+    public List<CardCapabilityType> capabilities = new();
+
+    [Header("Timed Transformation")]
+    // Hook de authoring para futuras transformaciones temporales
+    // de una sola carta. La logica runtime vive fuera de CardData.
+    public CardTransformationRule transformationRule;
+
+#if UNITY_EDITOR
+    protected virtual void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        CardDataValidationUtility.ValidateAndLog(this);
+    }
+#endif
 }

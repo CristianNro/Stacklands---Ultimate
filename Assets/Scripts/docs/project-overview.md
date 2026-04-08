@@ -9,7 +9,10 @@ The project is currently built around:
 - cards represented as UI prefabs
 - drag and drop interactions
 - logical stacks
-- recipe-driven transformations
+- recipe-driven stack crafting
+- single-card timed transformations
+- day-cycle driven world progression
+- encounter-based combat with runtime health, typed damage hooks, line formations and enemy loot hooks
 - timed crafting
 - animated card spawning
 - a small but growing market/container layer
@@ -21,11 +24,13 @@ The implemented base already includes:
 - card definitions through `ScriptableObject` assets
 - spawned runtime card instances
 - stack creation, merge, split and cleanup
-- recipe matching by exact ingredients or tag requirements
+- recipe matching by exact ingredients plus additional requirement layers
 - timed crafting tasks with repeatable recipes
 - board clamping and spawn positioning
 - market purchase/sell flows
-- containers that can store cards or open dedicated scenes
+- containers that can store cards
+- day progression with upkeep and day-start events
+- single-card transformation rules driven by runtime time
 
 ## Main goal
 
@@ -38,7 +43,6 @@ That said, the current architecture is still transitional. Several systems work 
 Today the gameplay loop is functional, but the project still depends on:
 
 - `MonoBehaviour`-heavy orchestration
-- string tags for important business rules
 - some classes with too many responsibilities
 - partial runtime state models
 - direct system-to-system coupling
@@ -66,7 +70,7 @@ The intended direction is:
 
 - stronger separation between domain, runtime state, interaction and visuals
 - cards defined by clearer capabilities
-- recipes driven by stronger contracts and less by raw strings
+- recipes driven by typed contracts and explicit capabilities
 - economy as its own layer
 - better persistence of runtime state
 - a more authoritative board model
@@ -78,4 +82,16 @@ The intended direction is:
 - `docs/stack-system.md`
 - `docs/recipe-system.md`
 - `docs/crafting-system.md`
+- `docs/day-cycle-system.md`
+- `docs/combat-system-plan.md`
+- `docs/combat-roadmap.md`
+- `docs/combat-v2-plan.md`
+- `docs/combat-v2-roadmap.md`
+- `docs/combat-v3-plan.md`
+- `docs/combat-v3-roadmap.md`
+- `docs/post-combat-v2-audit.md`
+- `docs/post-combat-v3-audit.md`
+- `docs/unit-enemy-separation-plan.md`
+- `docs/post-unit-enemy-separation-audit.md`
+- `docs/post-combat-full-audit.md`
 - `docs/architecture-roadmap.md`

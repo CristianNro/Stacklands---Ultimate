@@ -12,23 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1dcb9df35554984a7ed8fe8e4bcb2f1, type: 3}
   m_Name: Rock Container
   m_EditorClassIdentifier: Assembly-CSharp::ContainerCardData
-  id: 
-  cardName: 
-  displayName: 
+  id: RockContainer
+  cardName: RockContainer
+  displayName: RockContainer
   description: 
   cardType: 7
   rarity: 0
   cardImage: {fileID: 0}
+  cardIcon: {fileID: 0}
   stackable: 1
   isMovable: 1
   weight: 1
-  value: 0
+  value: 25
   isCurrency: 0
   currencyType: 0
   maxUses: 0
-  tags: []
+  capabilities: 
   capacity: 10
-  listMode: 1
-  listedCardTypes: 
+  listMode: 0
+  listedCardTypes: 00000000
+  useResourceTypeFilter: 1
+  resourceListMode: 0
+  listedResourceTypes: 01000000
   releaseRadius: 80
   maxCardsReleasedPerOpen: 0

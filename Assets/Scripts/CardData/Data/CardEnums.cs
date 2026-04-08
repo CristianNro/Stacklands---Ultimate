@@ -7,14 +7,15 @@ namespace StacklandsLike.Cards
     // -------------------------------------------------
     public enum CardType
     {
-        Resource,
-        Unit,
-        Building,
-        Item,
-        Terrain,
-        Food,
-        Tool,
-        Container
+        Resource = 0,
+        Unit = 1,
+        Building = 2,
+        Item = 3,
+        Terrain = 4,
+        Food = 5,
+        Tool = 6,
+        Container = 7,
+        Enemy = 8
     }
 
     // ============================================================
@@ -33,11 +34,13 @@ namespace StacklandsLike.Cards
     // RecipeMatchMode
     // ------------------------------------------------------------
     // Define como una receta decide si un stack aplica o no.
+    // TagRequirementsOnly se mantiene por compatibilidad,
+    // pero ahora representa requisitos tipados por capacidad.
     // ============================================================
     public enum RecipeMatchMode
     {
         ExactIngredients,
-        TagRequirementsOnly
+        CapabilityRequirementsOnly
     }
 
     // ============================================================
@@ -98,6 +101,31 @@ namespace StacklandsLike.Cards
         BlockListed
     }
 
+    // ============================================================
+    // CardCapabilityType
+    // ------------------------------------------------------------
+    // Typed gameplay permissions and affordances.
+    // Avoid duplicating strong classifications such as CardType,
+    // ResourceType, ItemType or CurrencyType here.
+    // ============================================================
+    public enum CardCapabilityType
+    {
+        None,
+        Worker,
+        TreeHarvester,
+        Builder,
+        Cooker,
+        Farmer,
+        SeedPlanter,
+        WaterCarrier,
+        FireSource,
+        FuelSource,
+        AnimalHandler,
+        Warrior,
+        BabyHumanIncubator,
+        PossibleIncubate
+    }
+
     // -------------------------------------------------
     // Rareza de carta
     // -------------------------------------------------
@@ -132,6 +160,39 @@ namespace StacklandsLike.Cards
         Player,
         Neutral,
         Enemy
+    }
+
+    // -------------------------------------------------
+    // Canal base de defensa usado por un ataque
+    // -------------------------------------------------
+    public enum CombatDefenseChannel
+    {
+        Physical,
+        Magical
+    }
+
+    // -------------------------------------------------
+    // Rol tactico de linea dentro de un encuentro.
+    // -------------------------------------------------
+    public enum CombatLineRole
+    {
+        Tank,
+        Melee,
+        Ranged
+    }
+
+    // -------------------------------------------------
+    // Tipos de dano adicionales que pueden modificar
+    // la resolucion final de un ataque.
+    // -------------------------------------------------
+    public enum DamageType
+    {
+        Electricity,
+        Holy,
+        Water,
+        Fire,
+        Earth,
+        Dead
     }
 
     // -------------------------------------------------

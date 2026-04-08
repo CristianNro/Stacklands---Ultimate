@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99d561ea98da8fa4ea70169d6f5ac408, type: 3}
   m_Name: Piedra
   m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
-  id: 
-  cardName: 
-  displayName: 
+  id: Stone
+  cardName: Stone
+  displayName: Stone
   description: 
   cardType: 0
   rarity: 0
-  cardImage: {fileID: 5472502129024591259, guid: ee71378c5f40aa14c8a57da3b523c643, type: 3}
+  cardImage: {fileID: -6307406724769728823, guid: 009a4e64735bb1143a1414261f812a13, type: 3}
+  cardIcon: {fileID: -9152689546471649384, guid: 1dbd456a9bdbf6f42ac5530fe3ac66e3, type: 3}
   stackable: 1
   isMovable: 1
-  isConsumable: 1
-  isDestroyable: 1
   weight: 1
   value: 2
-  consumeOnRecipe: 1
+  isCurrency: 0
+  currencyType: 0
   maxUses: 1
-  tags: []
+  capabilities: 
   resourceType: 1
-  maxStack: 10

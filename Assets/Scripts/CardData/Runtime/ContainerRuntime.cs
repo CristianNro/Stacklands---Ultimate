@@ -67,6 +67,9 @@ public class ContainerRuntime : MonoBehaviour, IPointerClickHandler
         if (instance == null || instance == cardInstance)
             return false;
 
+        if (instance.IsBusy || instance.IsInCombat())
+            return false;
+
         if (!CanStoreCardData(instance.data))
             return false;
 

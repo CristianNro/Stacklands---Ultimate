@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 // ============================================================
 // BaseMarketPackData
@@ -24,4 +27,14 @@ public abstract class BaseMarketPackData : ScriptableObject
     public CardData packCard;
 
     public abstract List<CardData> GetOpenedCards();
+
+#if UNITY_EDITOR
+    protected virtual void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        MarketValidationUtility.ValidateAndLogPack(this);
+    }
+#endif
 }

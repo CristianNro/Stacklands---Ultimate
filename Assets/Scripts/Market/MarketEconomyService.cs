@@ -68,7 +68,7 @@ public static class MarketEconomyService
 
     public static bool TryGetPositiveValue(CardInstance instance, out int value)
     {
-        value = instance != null ? Mathf.Max(0, instance.GetEffectiveValue()) : 0;
+        value = MarketPricingService.GetEffectiveMarketValue(instance);
         return value > 0;
     }
 
@@ -170,7 +170,7 @@ public static class MarketEconomyService
             if (!IsAcceptedCurrency(cardData, filterMode, listedCurrencyTypes))
                 continue;
 
-            int value = Mathf.Max(0, cardData.value);
+            int value = MarketPricingService.GetEffectiveMarketValue(cardData);
             if (value <= 0)
                 continue;
 

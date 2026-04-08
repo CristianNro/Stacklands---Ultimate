@@ -90,26 +90,36 @@ public static class StackCraftingExecutor
         if (stack == null || recipe == null)
             return new List<CardView>();
 
-        if (recipe.matchMode != RecipeMatchMode.TagRequirementsOnly)
-            return new List<CardView>(stack.Cards);
-
         List<CardView> selectedCards = new List<CardView>();
         HashSet<CardView> alreadySelected = new HashSet<CardView>();
+        if (recipe.matchMode == RecipeMatchMode.ExactIngredients)
+            SelectExactIngredientCards(stack, recipe, selectedCards, alreadySelected);
 
-        if (recipe.tagRequirements == null || recipe.tagRequirements.Count == 0)
-            return selectedCards;
+        SelectCapabilityRequirementCards(stack, recipe, selectedCards, alreadySelected);
 
-        for (int requirementIndex = 0; requirementIndex < recipe.tagRequirements.Count; requirementIndex++)
+        return selectedCards;
+    }
+
+    private static void SelectCapabilityRequirementCards(CardStack stack, RecipeData recipe, List<CardView> selectedCards, HashSet<CardView> alreadySelected)
+    {
+        if (stack == null || recipe == null || selectedCards == null)
+            return;
+
+        List<RecipeCapabilityRequirement> requirements = recipe.GetCapabilityRequirementsSnapshot();
+        if (requirements == null || requirements.Count == 0)
+            return;
+
+        for (int requirementIndex = 0; requirementIndex < requirements.Count; requirementIndex++)
         {
-            RecipeTagRequirement requirement = recipe.tagRequirements[requirementIndex];
-            if (requirement == null || string.IsNullOrWhiteSpace(requirement.tag))
+            RecipeCapabilityRequirement requirement = requirements[requirementIndex];
+            if (requirement == null || requirement.capability == CardCapabilityType.None)
                 continue;
 
             int requiredCount = Mathf.Max(0, requirement.minCount);
 
             for (int pickedCount = 0; pickedCount < requiredCount; pickedCount++)
             {
-                CardView matchingCard = FindNextUnselectedCardWithTag(stack, requirement.tag, alreadySelected);
+                CardView matchingCard = FindNextUnselectedCardWithCapability(stack, requirement.capability, alreadySelected);
                 if (matchingCard == null)
                     break;
 
@@ -117,13 +127,11 @@ public static class StackCraftingExecutor
                 selectedCards.Add(matchingCard);
             }
         }
-
-        return selectedCards;
     }
 
-    private static CardView FindNextUnselectedCardWithTag(CardStack stack, string tag, HashSet<CardView> alreadySelected)
+    private static CardView FindNextUnselectedCardWithCapability(CardStack stack, CardCapabilityType capability, HashSet<CardView> alreadySelected)
     {
-        if (stack == null || string.IsNullOrWhiteSpace(tag))
+        if (stack == null || capability == CardCapabilityType.None)
             return null;
 
         IReadOnlyList<CardView> cards = stack.Cards;
@@ -138,10 +146,67 @@ public static class StackCraftingExecutor
                 continue;
 
             CardInstance instance = card.Instance;
-            if (instance == null || !instance.HasTag(tag))
+            if (instance == null || !instance.HasCapability(capability))
                 continue;
 
             return card;
+        }
+
+        return null;
+    }
+
+    private static void SelectExactIngredientCards(CardStack stack, RecipeData recipe, List<CardView> selectedCards, HashSet<CardView> alreadySelected)
+    {
+        if (stack == null || recipe == null || selectedCards == null)
+            return;
+
+        List<RecipeIngredientRule> exactRequirements = recipe.GetExactIngredientRequirementsSnapshot();
+        if (exactRequirements == null || exactRequirements.Count == 0)
+            return;
+
+        for (int requirementIndex = 0; requirementIndex < exactRequirements.Count; requirementIndex++)
+        {
+            RecipeIngredientRule requirement = exactRequirements[requirementIndex];
+            if (requirement == null || requirement.card == null)
+                continue;
+
+            CardData targetCard = requirement.card;
+            int requiredCount = requirement.GetNormalizedRequiredCount();
+
+            for (int pickedCount = 0; pickedCount < requiredCount; pickedCount++)
+            {
+                CardView matchingCard = FindNextUnselectedExactIngredientCard(stack, targetCard, alreadySelected);
+                if (matchingCard == null)
+                    break;
+
+                alreadySelected.Add(matchingCard);
+                selectedCards.Add(matchingCard);
+            }
+        }
+    }
+
+    private static CardView FindNextUnselectedExactIngredientCard(CardStack stack, CardData targetCard, HashSet<CardView> alreadySelected)
+    {
+        if (stack == null || targetCard == null)
+            return null;
+
+        IReadOnlyList<CardView> cards = stack.Cards;
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            CardView card = cards[i];
+            if (card == null)
+                continue;
+
+            if (alreadySelected != null && alreadySelected.Contains(card))
+                continue;
+
+            CardInstance instance = card.Instance;
+            if (instance == null || instance.data == null)
+                continue;
+
+            if (instance.data == targetCard)
+                return card;
         }
 
         return null;

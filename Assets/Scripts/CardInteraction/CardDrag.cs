@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using System.Collections.Generic;
 
 // ============================================================
 // CardDrag
@@ -14,6 +13,10 @@ using System.Collections.Generic;
 // ============================================================
 public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    [Header("Drop Matching")]
+    [SerializeField, Range(0.1f, 1f)] private float overlapStackTargetThreshold = 0.5f;
+    [SerializeField] private bool debugDropResolution;
+
     private RectTransform rectTransform;
     private Canvas canvas;
     private CanvasGroup canvasGroup;
@@ -66,6 +69,7 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             {
                 draggedRectTransform = draggedStack.GetComponent<RectTransform>();
                 draggedStack.transform.SetAsLastSibling();
+                draggedStack.SetDropSurfaceRaycastEnabled(false);
             }
         }
         else
@@ -84,6 +88,9 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (draggedRectTransform == null || canvas == null) return;
 
         draggedRectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+
+        if (BoardRoot.Instance != null)
+            BoardRoot.Instance.ClampCardToPlayArea(draggedRectTransform);
     }
 
     private RectTransform GetBoardContainer()
@@ -96,6 +103,9 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     private Vector2 GetLocalPointInBoard(PointerEventData eventData)
     {
+        if (BoardRoot.Instance != null)
+            return BoardRoot.Instance.GetBoardPointFromScreenPosition(eventData.position, eventData.pressEventCamera);
+
         RectTransform boardRect = GetBoardContainer();
         Vector2 localPoint;
 
@@ -111,37 +121,44 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     private void PlaceDraggedObjectOnBoard(Vector2 desiredAnchoredPosition)
     {
+        if (draggedRectTransform == null)
+            return;
+
+        if (BoardRoot.Instance != null)
+        {
+            BoardRoot.Instance.TryPlaceRectOnBoard(draggedRectTransform, desiredAnchoredPosition, clampToBoard: true);
+            return;
+        }
+
         RectTransform boardRect = GetBoardContainer();
-        if (boardRect == null || draggedRectTransform == null)
+        if (boardRect == null)
             return;
 
         draggedRectTransform.SetParent(boardRect, false);
-
-        Vector2 finalPosition = desiredAnchoredPosition;
-
-        if (BoardRoot.Instance != null)
-            finalPosition = BoardRoot.Instance.GetClampedPosition(desiredAnchoredPosition, draggedRectTransform);
-
-        draggedRectTransform.anchoredPosition = finalPosition;
+        draggedRectTransform.anchoredPosition = desiredAnchoredPosition;
     }
 
-    private bool TryStoreDraggedCardsInContainer(ContainerRuntime targetContainer, List<CardView> cardsToStore)
+    private Vector2 GetCurrentDraggedBoardPosition()
     {
-        if (targetContainer == null || cardsToStore == null || cardsToStore.Count == 0)
-            return false;
+        if (draggedRectTransform == null)
+            return Vector2.zero;
 
-        bool storedAny = false;
+        if (BoardRoot.Instance != null)
+            return draggedRectTransform.anchoredPosition;
 
-        for (int i = 0; i < cardsToStore.Count; i++)
-        {
-            CardView draggedCard = cardsToStore[i];
-            if (draggedCard == null) continue;
+        RectTransform boardRect = GetBoardContainer();
+        if (boardRect == null)
+            return draggedRectTransform.anchoredPosition;
 
-            if (targetContainer.TryStoreCard(draggedCard))
-                storedAny = true;
-        }
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, draggedRectTransform.position);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            boardRect,
+            screenPoint,
+            null,
+            out Vector2 boardPoint
+        );
 
-        return storedAny;
+        return boardPoint;
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -153,168 +170,103 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         cardInstance?.SetDragging(false);
         canvasGroup.blocksRaycasts = true;
 
-        GameObject hitObject = eventData.pointerCurrentRaycast.gameObject;
-
-        if (hitObject == null)
-        {
-            Vector2 boardPoint = GetLocalPointInBoard(eventData);
-            PlaceDraggedObjectOnBoard(boardPoint);
-            return;
-        }
-
-        bool startedAsStackDrag = draggedStack != null;
-
-        MarketSellSlot marketSellSlot = hitObject != null
-            ? hitObject.GetComponentInParent<MarketSellSlot>()
-            : null;
-
-        if (marketSellSlot != null && marketSellSlot.TrySellFromDrop(cardView, draggedStack))
-            return;
-
-        MarketPackPurchaseSlot marketSlot = hitObject != null
-            ? hitObject.GetComponentInParent<MarketPackPurchaseSlot>()
-            : null;
-
-        if (marketSlot != null && marketSlot.TryPurchaseFromDrop(cardView, draggedStack))
-        {
-            Vector2 boardPoint = GetLocalPointInBoard(eventData);
-
-            // Si el objeto usado para pagar sigue existiendo despues de la compra
-            // (por ejemplo un cofre con contenido restante), lo devolvemos al board.
-            if (startedAsStackDrag)
-            {
-                if (draggedStack != null && draggedStack.gameObject != null)
-                    PlaceDraggedObjectOnBoard(boardPoint);
-
-                return;
-            }
-
-            if (cardView != null && cardView.gameObject != null)
-                PlaceDraggedObjectOnBoard(boardPoint);
-
-            return;
-        }
-
-        CardView targetCard = hitObject.GetComponentInParent<CardView>();
-
-        if (targetCard == null)
-        {
-            Vector2 boardPoint = GetLocalPointInBoard(eventData);
-            PlaceDraggedObjectOnBoard(boardPoint);
-            return;
-        }
-
-        if (targetCard.gameObject == this.gameObject)
-        {
-            Vector2 boardPoint = GetLocalPointInBoard(eventData);
-            PlaceDraggedObjectOnBoard(boardPoint);
-            return;
-        }
-
-        CardInstance targetInstance = targetCard.GetComponent<CardInstance>();
-        ContainerRuntime targetContainer = targetInstance != null && targetInstance.HasActiveContainerRuntime()
-            ? targetInstance.ContainerRuntime
-            : null;
-
-        // =====================================================
-        // Caso A: estamos arrastrando un stack
-        // =====================================================
         if (draggedStack != null)
+            draggedStack.SetDropSurfaceRaycastEnabled(true);
+
+        GameObject hitObject = eventData.pointerCurrentRaycast.gameObject;
+        Vector2 releasedBoardPosition = GetCurrentDraggedBoardPosition();
+        Vector2 boardPoint = GetLocalPointInBoard(eventData);
+        bool startedAsStackDrag = draggedStack != null;
+        CardDropTargetInfo targetInfo = CardDropTargetResolver.Resolve(hitObject);
+
+        bool shouldTryOverlapTarget =
+            targetInfo == null ||
+            targetInfo.primaryType == CardDropTargetType.None ||
+            (targetInfo.targetCard != null && targetInfo.targetCard.gameObject == gameObject);
+
+        if (shouldTryOverlapTarget &&
+            BoardRoot.Instance != null &&
+            draggedRectTransform != null)
         {
-            CardStack targetStack = targetCard.GetComponentInParent<CardStack>();
-            List<CardView> draggedCardsCopy = new List<CardView>(draggedStack.Cards);
-
-            // A0) Stack sobre contenedor -> guardar todas las cartas posibles.
-            // Si el contenedor se llena a mitad de camino, el resto del stack
-            // debe quedar en el tablero; no hay que destruirlo entero.
-            if (targetContainer != null && TryStoreDraggedCardsInContainer(targetContainer, draggedCardsCopy))
+            CardView overlappedCard = BoardRoot.Instance.FindBestCoveredCardTarget(draggedRectTransform, overlapStackTargetThreshold);
+            if (overlappedCard != null && overlappedCard.gameObject != gameObject)
             {
-                if (draggedStack != null && draggedStack.gameObject != null)
+                targetInfo = new CardDropTargetInfo
                 {
-                    Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                    PlaceDraggedObjectOnBoard(boardPoint);
-                }
+                    primaryType = CardDropTargetType.None,
+                    hitObject = hitObject
+                };
 
-                return;
-            }
-
-            // A1) Stack sobre otro stack -> merge completo.
-            if (targetStack != null && targetStack != draggedStack)
-            {
-                if (!targetStack.CanAcceptCards(draggedCardsCopy))
-                {
-                    Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                    PlaceDraggedObjectOnBoard(boardPoint);
-                    return;
-                }
-
-                foreach (CardView card in draggedCardsCopy)
-                    targetStack.AddCard(card);
-
-                if (draggedStack != null)
-                    Destroy(draggedStack.gameObject);
-
-                return;
-            }
-
-            // A2) Stack sobre carta suelta -> crear nuevo stack con todo.
-            if (targetStack == null)
-            {
-                if (!CardStackFactory.CanCreateStack(targetCard, draggedCardsCopy))
-                {
-                    Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                    PlaceDraggedObjectOnBoard(boardPoint);
-                    return;
-                }
-
-                CardStack newStack = CardStackFactory.CreateStack(targetCard, draggedCardsCopy[0]);
-                if (newStack == null)
-                {
-                    Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                    PlaceDraggedObjectOnBoard(boardPoint);
-                    return;
-                }
-
-                for (int i = 1; i < draggedCardsCopy.Count; i++)
-                {
-                    newStack.AddCard(draggedCardsCopy[i]);
-                }
-
-                if (draggedStack != null)
-                    Destroy(draggedStack.gameObject);
-
-                return;
+                overlappedCard.PopulateDropTargetInfo(targetInfo);
             }
         }
 
-        // =====================================================
-        // Caso B: arrastramos una carta suelta
-        // =====================================================
-        if (targetContainer != null && targetContainer.TryStoreCard(cardView))
+        bool shouldTryEncounterTarget =
+            targetInfo == null ||
+            targetInfo.primaryType == CardDropTargetType.None ||
+            (targetInfo.targetCard != null && targetInfo.targetCard.gameObject == gameObject);
+
+        if (shouldTryEncounterTarget)
+        {
+            CombatEncounter overlappedEncounter = CombatEncounter.FindOverlapping(draggedRectTransform)
+                ?? CombatEncounter.FindAtBoardPoint(boardPoint);
+
+            if (overlappedEncounter != null)
+            {
+                targetInfo = new CardDropTargetInfo
+                {
+                    primaryType = CardDropTargetType.None,
+                    hitObject = hitObject
+                };
+
+                overlappedEncounter.PopulateDropTargetInfo(targetInfo);
+            }
+        }
+
+        if (debugDropResolution)
+        {
+            string initialTarget = hitObject != null ? hitObject.name : "null";
+            string resolvedTarget = targetInfo != null && targetInfo.targetCard != null ? targetInfo.targetCard.name : "null";
+            string resolvedType = targetInfo != null ? targetInfo.primaryType.ToString() : "null";
+            Debug.Log(
+                $"[CardDrag] Drop '{name}' -> hit='{initialTarget}', type='{resolvedType}', targetCard='{resolvedTarget}', overlapThreshold={overlapStackTargetThreshold:0.##}, startedAsStack={startedAsStackDrag}",
+                this
+            );
+        }
+
+        CardDropContext dropContext = new CardDropContext
+        {
+            draggedCard = cardView,
+            draggedInstance = cardInstance,
+            draggedStack = draggedStack,
+            startedAsStackDrag = startedAsStackDrag,
+            hitObject = hitObject,
+            targetInfo = targetInfo,
+            boardPoint = boardPoint
+        };
+
+        CardDropResolutionResult resolution = CardDropResolver.Resolve(dropContext);
+        if (debugDropResolution)
+        {
+            Debug.Log(
+                $"[CardDrag] Resolution for '{name}' -> handled={(resolution != null && resolution.handled)}, returnToBoard={(resolution != null && resolution.placeDraggedObjectOnBoard)}",
+                this
+            );
+        }
+
+        if (resolution == null || !resolution.handled)
+        {
+            PlaceDraggedObjectOnBoard(releasedBoardPosition);
             return;
-
-        CardStack existingTargetStack = targetCard.GetComponentInParent<CardStack>();
-
-        if (existingTargetStack != null)
-        {
-            if (existingTargetStack.CanAcceptCard(cardView))
-            {
-                existingTargetStack.AddCard(cardView);
-            }
-            else
-            {
-                Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                PlaceDraggedObjectOnBoard(boardPoint);
-            }
         }
-        else
+
+        if (resolution.placeDraggedObjectOnBoard)
         {
-            CardStack newStack = CardStackFactory.CreateStack(targetCard, cardView);
-            if (newStack == null)
-            {
-                Vector2 boardPoint = GetLocalPointInBoard(eventData);
-                PlaceDraggedObjectOnBoard(boardPoint);
-            }
+            Vector2 placement = resolution.hasCustomBoardPlacement
+                ? resolution.customBoardPlacement
+                : releasedBoardPosition;
+
+            PlaceDraggedObjectOnBoard(placement);
         }
     }
 

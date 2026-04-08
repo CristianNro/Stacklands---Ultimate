@@ -290,10 +290,7 @@ public static class MarketTransactionService
             if (!MarketEconomyService.IsAcceptedCurrency(snapshot.definition, filterMode, listedCurrencyTypes))
                 continue;
 
-            int value = snapshot.runtime != null && snapshot.runtime.hasRuntimeValueOverride
-                ? Mathf.Max(0, snapshot.runtime.runtimeValueOverride)
-                : Mathf.Max(0, snapshot.definition.value);
-            if (value <= 0)
+            if (!MarketPricingService.TryGetPositiveMarketValue(snapshot, out int value))
                 continue;
 
             context.availableUnits.Add(new PaymentUnit
@@ -318,7 +315,7 @@ public static class MarketTransactionService
         {
             new SellableUnit
             {
-                value = instance.GetEffectiveValue(),
+                value = MarketPricingService.GetEffectiveMarketValue(instance),
                 cardView = draggedCard
             }
         };
@@ -340,7 +337,7 @@ public static class MarketTransactionService
 
             sellableUnits.Add(new SellableUnit
             {
-                value = instance.GetEffectiveValue(),
+                value = MarketPricingService.GetEffectiveMarketValue(instance),
                 cardView = card
             });
         }
@@ -353,7 +350,7 @@ public static class MarketTransactionService
         if (instance == null || instance.data == null)
             return false;
 
-        if (instance.GetEffectiveValue() <= 0)
+        if (MarketPricingService.GetEffectiveMarketValue(instance) <= 0)
             return false;
 
         if (MarketEconomyService.IsCurrency(instance))

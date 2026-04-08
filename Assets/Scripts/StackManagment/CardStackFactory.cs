@@ -46,38 +46,26 @@ public static class CardStackFactory
         if (!CanCreateStack(firstCard, new List<CardView> { secondCard }))
             return null;
 
-        RectTransform boardContainer = null;
-
-        if (BoardRoot.Instance != null)
-            boardContainer = BoardRoot.Instance.CardsContainer;
-
-        if (boardContainer == null)
+        if (BoardRoot.Instance == null)
         {
             Debug.LogError("No existe BoardRoot.CardsContainer para crear stacks.");
             return null;
         }
 
-        // Creamos el objeto stack dentro del contenedor correcto.
-        GameObject stackGO = new GameObject("CardStack", typeof(RectTransform));
-        RectTransform stackRT = stackGO.GetComponent<RectTransform>();
-
-        stackRT.SetParent(boardContainer, false);
-        stackRT.anchorMin = new Vector2(0.5f, 0.5f);
-        stackRT.anchorMax = new Vector2(0.5f, 0.5f);
-        stackRT.pivot = new Vector2(0.5f, 0.5f);
-        stackRT.localScale = Vector3.one;
-        stackRT.localRotation = Quaternion.identity;
-
-        // El stack nace en la posición de la primera carta.
         RectTransform firstRT = firstCard.GetComponent<RectTransform>();
-        stackRT.anchoredPosition = firstRT.anchoredPosition;
+        if (firstRT == null)
+            return null;
 
-        CardStack stack = stackGO.AddComponent<CardStack>();
+        RectTransform stackRT = BoardRoot.Instance.CreateBoardRectTransform("CardStack", firstRT.anchoredPosition, clampToBoard: true);
+        if (stackRT == null)
+            return null;
+
+        CardStack stack = stackRT.gameObject.AddComponent<CardStack>();
 
         // Agregamos primero la carta destino y luego la arrastrada.
         if (!stack.TryAddCard(firstCard) || !stack.TryAddCard(secondCard))
         {
-            Object.Destroy(stackGO);
+            Object.Destroy(stackRT.gameObject);
             return null;
         }
 

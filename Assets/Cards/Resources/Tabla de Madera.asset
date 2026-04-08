@@ -13,20 +13,19 @@ MonoBehaviour:
   m_Name: Tabla de Madera
   m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
   id: Tabla de Madera
-  cardName: 
-  displayName: 
+  cardName: Tabla de Madera
+  displayName: Tabla de Madera
   description: 
   cardType: 0
   rarity: 0
-  cardImage: {fileID: 5085108448704692140, guid: a76e26ba3597ad244a3adcab6e9fa2c1, type: 3}
+  cardImage: {fileID: -6307406724769728823, guid: 009a4e64735bb1143a1414261f812a13, type: 3}
+  cardIcon: {fileID: 5085108448704692140, guid: efa8453d30f03e44082c9583a5676eb0, type: 3}
   stackable: 1
   isMovable: 1
-  isConsumable: 1
-  isDestroyable: 1
   weight: 1
   value: 6
-  consumeOnRecipe: 1
+  isCurrency: 0
+  currencyType: 0
   maxUses: 1
-  tags: []
+  capabilities: 
   resourceType: 0
-  maxStack: 10

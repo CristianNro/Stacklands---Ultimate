@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 // BoardRoot representa la raíz lógica del tablero.
 // Registra cartas activas y controla los límites válidos del área jugable.
@@ -8,6 +11,9 @@ using UnityEngine;
 public class BoardRoot : MonoBehaviour
 {
     public static BoardRoot Instance { get; private set; }
+    public static event System.Action<BoardRoot> OnBoardRootAvailable;
+    public event System.Action<CardInstance> OnCardRegistered;
+    public event System.Action<CardInstance> OnCardUnregistered;
     public event System.Action<CardStack> OnStackRegistered;
     public event System.Action<CardStack> OnStackUnregistered;
 
@@ -28,6 +34,10 @@ public class BoardRoot : MonoBehaviour
     public RectTransform PlayArea => playArea;
     public IReadOnlyList<CardInstance> ActiveCards => activeCards;
     public IReadOnlyList<CardStack> ActiveStacks => activeStacks;
+    public float LeftPadding => leftPadding;
+    public float RightPadding => rightPadding;
+    public float TopPadding => topPadding;
+    public float BottomPadding => bottomPadding;
 
     private void Awake()
     {
@@ -39,7 +49,9 @@ public class BoardRoot : MonoBehaviour
         if (playArea == null)
             playArea = cardsContainer;
 
+        RegisterExistingCards();
         RegisterExistingStacks();
+        OnBoardRootAvailable?.Invoke(this);
     }
 
     // =========================================================
@@ -52,12 +64,15 @@ public class BoardRoot : MonoBehaviour
         if (activeCards.Contains(card)) return;
 
         activeCards.Add(card);
+        OnCardRegistered?.Invoke(card);
     }
 
     public void UnregisterCard(CardInstance card)
     {
         if (card == null) return;
-        activeCards.Remove(card);
+        if (!activeCards.Remove(card)) return;
+
+        OnCardUnregistered?.Invoke(card);
     }
 
     public void RegisterStack(CardStack stack)
@@ -87,12 +102,21 @@ public class BoardRoot : MonoBehaviour
         return Vector2.Distance(clamped, anchoredPosition) < 0.01f;
     }
 
-        public Vector2 GetClampedPosition(Vector2 anchoredPosition, RectTransform cardRect)
+    public Vector2 GetClampedPosition(Vector2 anchoredPosition, RectTransform cardRect)
+    {
+        return GetClampedPositionWithinRect(cardsContainer != null ? cardsContainer.rect : new Rect(), anchoredPosition, cardRect);
+    }
+
+    public Vector2 GetClampedPositionInPlayArea(Vector2 anchoredPosition, RectTransform cardRect)
+    {
+        Rect constraintRect = GetConstraintRectInContainerSpace(usePlayArea: true);
+        return GetClampedPositionWithinRect(constraintRect, anchoredPosition, cardRect);
+    }
+
+    private Vector2 GetClampedPositionWithinRect(Rect rect, Vector2 anchoredPosition, RectTransform cardRect)
     {
         if (cardsContainer == null || cardRect == null)
             return anchoredPosition;
-
-        Rect rect = cardsContainer.rect;
 
         float leftExtent;
         float rightExtent;
@@ -162,6 +186,147 @@ public class BoardRoot : MonoBehaviour
         if (cardRect == null) return;
 
         cardRect.anchoredPosition = GetClampedPosition(cardRect.anchoredPosition, cardRect);
+
+        CardStack stack = cardRect.GetComponent<CardStack>();
+        if (stack != null)
+            ClampStackVisualBoundsToBoard(stack);
+    }
+
+    public void ClampCardToPlayArea(RectTransform cardRect)
+    {
+        if (cardRect == null) return;
+
+        cardRect.anchoredPosition = GetClampedPositionInPlayArea(cardRect.anchoredPosition, cardRect);
+
+        CardStack stack = cardRect.GetComponent<CardStack>();
+        if (stack != null)
+            ClampStackVisualBoundsToPlayArea(stack);
+    }
+
+    public void ClampStackVisualBoundsToBoard(CardStack stack)
+    {
+        ClampStackVisualBoundsToConstraintRect(stack, GetConstraintRectInContainerSpace(usePlayArea: false));
+    }
+
+    public void ClampStackVisualBoundsToPlayArea(CardStack stack)
+    {
+        ClampStackVisualBoundsToConstraintRect(stack, GetConstraintRectInContainerSpace(usePlayArea: true));
+    }
+
+    private void ClampStackVisualBoundsToConstraintRect(CardStack stack, Rect constraintRect)
+    {
+        if (stack == null || cardsContainer == null)
+            return;
+
+        RectTransform stackRect = stack.GetComponent<RectTransform>();
+        if (stackRect == null)
+            return;
+
+        Rect? visualBounds = GetCurrentStackBoundsInContainerSpace(stack);
+        if (!visualBounds.HasValue)
+        {
+            stackRect.anchoredPosition = GetClampedPositionWithinRect(constraintRect, stackRect.anchoredPosition, stackRect);
+            return;
+        }
+
+        Rect bounds = visualBounds.Value;
+
+        float minX = constraintRect.xMin + leftPadding;
+        float maxX = constraintRect.xMax - rightPadding;
+        float minY = constraintRect.yMin + bottomPadding;
+        float maxY = constraintRect.yMax - topPadding;
+
+        Vector2 delta = Vector2.zero;
+
+        if (bounds.xMin < minX)
+            delta.x += minX - bounds.xMin;
+        else if (bounds.xMax > maxX)
+            delta.x -= bounds.xMax - maxX;
+
+        if (bounds.yMin < minY)
+            delta.y += minY - bounds.yMin;
+        else if (bounds.yMax > maxY)
+            delta.y -= bounds.yMax - maxY;
+
+        if (delta != Vector2.zero)
+            stackRect.anchoredPosition += delta;
+    }
+
+    public bool TryGetBoardPointFromScreenPosition(Vector2 screenPosition, Camera eventCamera, out Vector2 boardPoint)
+    {
+        boardPoint = Vector2.zero;
+
+        if (cardsContainer == null)
+            return false;
+
+        return RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            cardsContainer,
+            screenPosition,
+            eventCamera,
+            out boardPoint
+        );
+    }
+
+    public Vector2 GetBoardPointFromScreenPosition(Vector2 screenPosition, Camera eventCamera)
+    {
+        return TryGetBoardPointFromScreenPosition(screenPosition, eventCamera, out Vector2 boardPoint)
+            ? boardPoint
+            : Vector2.zero;
+    }
+
+    public Vector2 GetBoardPointFromWorldPosition(Vector3 worldPosition, Camera worldCamera = null, Camera eventCamera = null)
+    {
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(worldCamera, worldPosition);
+        return GetBoardPointFromScreenPosition(screenPoint, eventCamera);
+    }
+
+    public bool TryPlaceRectOnBoard(RectTransform rectTransform, Vector2 desiredAnchoredPosition, bool clampToBoard = true)
+    {
+        if (cardsContainer == null || rectTransform == null)
+            return false;
+
+        rectTransform.SetParent(cardsContainer, false);
+
+        if (!clampToBoard)
+        {
+            rectTransform.anchoredPosition = desiredAnchoredPosition;
+            return true;
+        }
+
+        rectTransform.anchoredPosition = desiredAnchoredPosition;
+        ClampCardToBoard(rectTransform);
+
+        return true;
+    }
+
+    public bool TryMoveRectToBoardKeepingVisualPosition(RectTransform rectTransform, Camera worldCamera = null, Camera eventCamera = null, bool clampToBoard = true)
+    {
+        if (rectTransform == null)
+            return false;
+
+        Vector2 boardPoint = GetBoardPointFromWorldPosition(rectTransform.position, worldCamera, eventCamera);
+        return TryPlaceRectOnBoard(rectTransform, boardPoint, clampToBoard);
+    }
+
+    public RectTransform CreateBoardRectTransform(string objectName, Vector2 desiredAnchoredPosition, bool clampToBoard = true)
+    {
+        if (cardsContainer == null)
+            return null;
+
+        GameObject go = new GameObject(objectName, typeof(RectTransform));
+        RectTransform rectTransform = go.GetComponent<RectTransform>();
+
+        rectTransform.SetParent(cardsContainer, false);
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.localScale = Vector3.one;
+        rectTransform.localRotation = Quaternion.identity;
+        rectTransform.anchoredPosition = clampToBoard
+            ? GetClampedPosition(desiredAnchoredPosition, rectTransform)
+            : desiredAnchoredPosition;
+
+        return rectTransform;
     }
 
     // =========================================================
@@ -235,6 +400,61 @@ public class BoardRoot : MonoBehaviour
         return clampedPreferred;
     }
 
+    public CardView FindBestCoveredCardTarget(RectTransform movingRect, float minimumTargetCoverage)
+    {
+        if (movingRect == null || minimumTargetCoverage <= 0f)
+            return null;
+
+        Rect movingBounds = GetCurrentBoundsInContainerSpace(movingRect);
+        if (movingBounds.width <= 0f || movingBounds.height <= 0f)
+            return null;
+
+        float movingArea = movingBounds.width * movingBounds.height;
+        if (movingArea <= 0f)
+            return null;
+
+        CardView bestCard = null;
+        float bestCoverage = minimumTargetCoverage;
+
+        for (int i = 0; i < activeCards.Count; i++)
+        {
+            CardInstance instance = activeCards[i];
+            if (instance == null || instance.RectTransform == null || instance.View == null)
+                continue;
+
+            if (instance.RectTransform == movingRect)
+                continue;
+
+            if (instance.RectTransform.IsChildOf(movingRect))
+                continue;
+
+            Rect targetBounds = GetCurrentBoundsInContainerSpace(instance.RectTransform);
+            if (targetBounds.width <= 0f || targetBounds.height <= 0f)
+                continue;
+
+            Rect overlap = GetIntersection(movingBounds, targetBounds);
+            if (overlap.width <= 0f || overlap.height <= 0f)
+                continue;
+
+            float targetArea = targetBounds.width * targetBounds.height;
+            if (targetArea <= 0f)
+                continue;
+
+            float overlapArea = overlap.width * overlap.height;
+            float targetCoverage = overlapArea / targetArea;
+            float movingCoverage = overlapArea / movingArea;
+            float coverage = Mathf.Max(targetCoverage, movingCoverage);
+
+            if (coverage < bestCoverage)
+                continue;
+
+            bestCoverage = coverage;
+            bestCard = instance.View;
+        }
+
+        return bestCard;
+    }
+
     private void RegisterExistingStacks()
     {
         CardStack[] allStacks = FindObjectsByType<CardStack>(FindObjectsSortMode.None);
@@ -243,10 +463,18 @@ public class BoardRoot : MonoBehaviour
             RegisterStack(allStacks[i]);
     }
 
+    private void RegisterExistingCards()
+    {
+        CardInstance[] allCards = FindObjectsByType<CardInstance>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < allCards.Length; i++)
+            RegisterCard(allCards[i]);
+    }
+
     private bool IsPositionFreeForRect(Vector2 position, RectTransform movingRect, float minimumVisibleFraction, RectTransform ignoreRect = null)
     {
-        Vector2 movingSize = GetCardSizeInContainerSpace(movingRect);
-        if (movingSize == Vector2.zero)
+        Rect movingBounds = GetProjectedBoundsForRectAtPosition(movingRect, position);
+        if (movingBounds.width <= 0f || movingBounds.height <= 0f)
             return true;
 
         for (int i = 0; i < activeCards.Count; i++)
@@ -258,14 +486,26 @@ public class BoardRoot : MonoBehaviour
             if (ignoreRect != null && instance.RectTransform == ignoreRect)
                 continue;
 
-            Vector2 otherPosition = instance.RectTransform.anchoredPosition;
-            float minSeparationX = movingSize.x * minimumVisibleFraction;
-            float minSeparationY = movingSize.y * minimumVisibleFraction;
+            if (movingRect != null && instance.RectTransform.IsChildOf(movingRect))
+                continue;
 
-            bool overlapsX = Mathf.Abs(position.x - otherPosition.x) < minSeparationX;
-            bool overlapsY = Mathf.Abs(position.y - otherPosition.y) < minSeparationY;
+            Rect otherBounds = GetCurrentBoundsInContainerSpace(instance.RectTransform);
+            if (otherBounds.width <= 0f || otherBounds.height <= 0f)
+                continue;
 
-            if (overlapsX && overlapsY)
+            Rect overlap = GetIntersection(movingBounds, otherBounds);
+            if (overlap.width <= 0f || overlap.height <= 0f)
+                continue;
+
+            float movingWidthThreshold = movingBounds.width * minimumVisibleFraction;
+            float movingHeightThreshold = movingBounds.height * minimumVisibleFraction;
+            float otherWidthThreshold = otherBounds.width * minimumVisibleFraction;
+            float otherHeightThreshold = otherBounds.height * minimumVisibleFraction;
+
+            bool blocksMovingVisibility = overlap.width >= movingWidthThreshold && overlap.height >= movingHeightThreshold;
+            bool blocksOtherVisibility = overlap.width >= otherWidthThreshold && overlap.height >= otherHeightThreshold;
+
+            if (blocksMovingVisibility || blocksOtherVisibility)
                 return false;
         }
 
@@ -280,12 +520,152 @@ public class BoardRoot : MonoBehaviour
             if (instance == null || instance.RectTransform == null)
                 continue;
 
-            float distance = Vector2.Distance(position, instance.RectTransform.anchoredPosition);
+            Rect bounds = GetCurrentBoundsInContainerSpace(instance.RectTransform);
+            Vector2 center = bounds.center;
+
+            float distance = Vector2.Distance(position, center);
             if (distance < occupiedRadius)
                 return false;
         }
 
         return true;
+    }
+
+    private Rect GetProjectedBoundsForRectAtPosition(RectTransform rectTransform, Vector2 anchoredPosition)
+    {
+        if (rectTransform == null)
+            return new Rect();
+
+        CardStack stack = rectTransform.GetComponent<CardStack>();
+        if (stack != null)
+        {
+            stack.GetVisualExtents(out float left, out float right, out float bottom, out float top);
+            return Rect.MinMaxRect(
+                anchoredPosition.x - left,
+                anchoredPosition.y - bottom,
+                anchoredPosition.x + right,
+                anchoredPosition.y + top
+            );
+        }
+
+        Vector2 size = GetCardSizeInContainerSpace(rectTransform);
+        if (size == Vector2.zero)
+            return new Rect();
+
+        Vector2 halfSize = size * 0.5f;
+        return Rect.MinMaxRect(
+            anchoredPosition.x - halfSize.x,
+            anchoredPosition.y - halfSize.y,
+            anchoredPosition.x + halfSize.x,
+            anchoredPosition.y + halfSize.y
+        );
+    }
+
+    private Rect GetCurrentBoundsInContainerSpace(RectTransform rectTransform)
+    {
+        if (cardsContainer == null || rectTransform == null)
+            return new Rect();
+
+        Vector3[] worldCorners = new Vector3[4];
+        rectTransform.GetWorldCorners(worldCorners);
+
+        Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+        Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+
+        for (int i = 0; i < worldCorners.Length; i++)
+        {
+            Vector3 localCorner3 = cardsContainer.InverseTransformPoint(worldCorners[i]);
+            Vector2 localCorner = new Vector2(localCorner3.x, localCorner3.y);
+
+            min = Vector2.Min(min, localCorner);
+            max = Vector2.Max(max, localCorner);
+        }
+
+        return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+    }
+
+    private Rect? GetCurrentStackBoundsInContainerSpace(CardStack stack)
+    {
+        if (stack == null)
+            return null;
+
+        IReadOnlyList<CardView> stackCards = stack.Cards;
+        if (stackCards == null || stackCards.Count == 0)
+            return null;
+
+        bool hasAnyBounds = false;
+        Rect combinedBounds = new Rect();
+
+        for (int i = 0; i < stackCards.Count; i++)
+        {
+            CardView card = stackCards[i];
+            if (card == null)
+                continue;
+
+            RectTransform cardRect = card.GetComponent<RectTransform>();
+            if (cardRect == null)
+                continue;
+
+            Rect cardBounds = GetCurrentBoundsInContainerSpace(cardRect);
+            if (cardBounds.width <= 0f || cardBounds.height <= 0f)
+                continue;
+
+            if (!hasAnyBounds)
+            {
+                combinedBounds = cardBounds;
+                hasAnyBounds = true;
+            }
+            else
+            {
+                combinedBounds = Rect.MinMaxRect(
+                    Mathf.Min(combinedBounds.xMin, cardBounds.xMin),
+                    Mathf.Min(combinedBounds.yMin, cardBounds.yMin),
+                    Mathf.Max(combinedBounds.xMax, cardBounds.xMax),
+                    Mathf.Max(combinedBounds.yMax, cardBounds.yMax)
+                );
+            }
+        }
+
+        return hasAnyBounds ? combinedBounds : null;
+    }
+
+    private Rect GetIntersection(Rect a, Rect b)
+    {
+        float xMin = Mathf.Max(a.xMin, b.xMin);
+        float yMin = Mathf.Max(a.yMin, b.yMin);
+        float xMax = Mathf.Min(a.xMax, b.xMax);
+        float yMax = Mathf.Min(a.yMax, b.yMax);
+
+        if (xMax <= xMin || yMax <= yMin)
+            return new Rect();
+
+        return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+    }
+
+    private Rect GetConstraintRectInContainerSpace(bool usePlayArea)
+    {
+        if (cardsContainer == null)
+            return new Rect();
+
+        if (!usePlayArea || playArea == null || playArea == cardsContainer)
+            return cardsContainer.rect;
+
+        Vector3[] worldCorners = new Vector3[4];
+        playArea.GetWorldCorners(worldCorners);
+
+        Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+        Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+
+        for (int i = 0; i < worldCorners.Length; i++)
+        {
+            Vector3 localCorner3 = cardsContainer.InverseTransformPoint(worldCorners[i]);
+            Vector2 localCorner = new Vector2(localCorner3.x, localCorner3.y);
+
+            min = Vector2.Min(min, localCorner);
+            max = Vector2.Max(max, localCorner);
+        }
+
+        return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
     }
 
     private Vector2 GetCardSizeInContainerSpace(RectTransform cardRect)
@@ -303,4 +683,14 @@ public class BoardRoot : MonoBehaviour
         if (Instance == this)
             Instance = null;
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        InfrastructureValidationUtility.ValidateAndLogBoardRoot(this);
+    }
+#endif
 }

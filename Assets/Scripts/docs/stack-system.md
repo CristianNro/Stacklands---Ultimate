@@ -52,6 +52,7 @@ This makes it one of the most sensitive classes in the project.
 - stack position and full visual footprint matter for board clamping
 - stack changes must keep downstream systems synchronized
 - stack acceptance rules must live inside the stack too, not only in callers such as drag/drop
+- new gameplay-facing stack aggregation should prefer `CountCardsWithCapability(...)`
 
 ## Future direction
 

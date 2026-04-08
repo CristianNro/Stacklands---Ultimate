@@ -12,28 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5ed49eee4fc1914987e11d06fbe7ba7, type: 3}
   m_Name: Casa
   m_EditorClassIdentifier: Assembly-CSharp::BuildingCardData
-  id: 
+  id: Casa
   cardName: Casa
-  displayName: Casa
+  displayName: House
   description: Hogar dulce hogar
   cardType: 2
   rarity: 0
-  cardImage: {fileID: 4234716793627779387, guid: 60d24948364adb84daee26d3755cc379, type: 3}
+  cardImage: {fileID: 6041240624108988605, guid: 3b3950dc94875d948ae5543eb711e61c, type: 3}
+  cardIcon: {fileID: 4019288599738441542, guid: 60a36c9d72c647e4f9b82b8f32907208, type: 3}
   stackable: 1
   isMovable: 1
-  isConsumable: 0
-  isDestroyable: 1
   weight: 1
   value: 25
-  consumeOnRecipe: 0
+  isCurrency: 0
+  currencyType: 0
   maxUses: 0
-  tags:
-  - Building
+  capabilities: 0c000000
+  transformationRule: {fileID: 0}
   durability: 20
-  workerCapacity: 0
-  residentCapacity: 0
-  storageCapacity: 0
-  needsWorker: 0
-  canProduce: 0
-  productionTime: 0
-  buildTime: 0

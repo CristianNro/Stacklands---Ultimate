@@ -12,18 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31f48f97fb364d4ebd14d8c87d94e77d, type: 3}
   m_Name: PackCard
   m_EditorClassIdentifier: Assembly-CSharp::PackCardData
-  id: Pack
+  id: PackCard
   cardName: Pack
   displayName: Pack
   description: 
-  cardType: 0
+  cardType: 3
   rarity: 0
   cardImage: {fileID: 3175071118421807904, guid: 08f7775238233f24ebe6c8c9d517970e, type: 3}
+  cardIcon: {fileID: 0}
   stackable: 0
   isMovable: 1
   weight: 1
   value: 0
+  isCurrency: 0
+  currencyType: 0
   maxUses: 0
-  tags: []
+  capabilities: 
   itemType: 3
   embeddedPackData: {fileID: 11400000, guid: bd5ec7605330af6498b9b0259ee9708e, type: 2}

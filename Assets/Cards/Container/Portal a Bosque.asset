@@ -12,25 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1dcb9df35554984a7ed8fe8e4bcb2f1, type: 3}
   m_Name: Portal a Bosque
   m_EditorClassIdentifier: Assembly-CSharp::ContainerCardData
-  id: 
-  cardName: 
-  displayName: 
+  id: PortalBosque
+  cardName: PortalBosque
+  displayName: PortalBosque
   description: 
   cardType: 7
   rarity: 3
   cardImage: {fileID: 2189510010676529607, guid: 023896fb3492e55479c17894741d6c39, type: 3}
+  cardIcon: {fileID: 0}
   stackable: 1
   isMovable: 1
-  isConsumable: 0
-  isDestroyable: 1
   weight: 1
   value: 0
-  consumeOnRecipe: 1
+  isCurrency: 0
+  currencyType: 0
   maxUses: 0
-  tags: []
-  openMode: 1
+  capabilities: 
   capacity: 10
   listMode: 1
-  listedCards: []
+  listedCardTypes: 
+  useResourceTypeFilter: 0
+  resourceListMode: 0
+  listedResourceTypes: 
   releaseRadius: 80
-  targetSceneName: Bosque
+  maxCardsReleasedPerOpen: 0

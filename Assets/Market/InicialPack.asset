@@ -18,3 +18,4 @@ MonoBehaviour:
   fixedCards:
   - {fileID: 11400000, guid: 05e07909cf0dac447893638a0a93a619, type: 2}
   - {fileID: 11400000, guid: b28f6a4f7bd292441922d34c34089c8c, type: 2}
+  - {fileID: 11400000, guid: 1c35e4e3146c36b41863b37423906a12, type: 2}

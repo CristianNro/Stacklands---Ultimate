@@ -31,6 +31,11 @@ public class CardInstance : MonoBehaviour
     [SerializeField] private BuildingRuntime buildingRuntime;
     [SerializeField] private ContainerRuntime containerRuntime;
     [SerializeField] private MarketPackRuntime marketPackRuntime;
+    [SerializeField] private FoodRuntime foodRuntime;
+    [SerializeField] private CombatParticipantRuntime combatParticipantRuntime;
+    [SerializeField] private CardTransformationRuntime transformationRuntime;
+
+    private BoardRoot registeredBoardRoot;
 
     private void Awake()
     {
@@ -38,6 +43,18 @@ public class CardInstance : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(runtimeId))
             runtimeId = System.Guid.NewGuid().ToString();
+    }
+
+    private void OnEnable()
+    {
+        BoardRoot.OnBoardRootAvailable += HandleBoardRootAvailable;
+        TryRegisterWithBoard();
+    }
+
+    private void OnDisable()
+    {
+        BoardRoot.OnBoardRootAvailable -= HandleBoardRootAvailable;
+        UnregisterFromBoardIfNeeded();
     }
 
     public string RuntimeId => runtimeId;
@@ -49,6 +66,9 @@ public class CardInstance : MonoBehaviour
     public BuildingRuntime BuildingRuntime => buildingRuntime;
     public ContainerRuntime ContainerRuntime => containerRuntime;
     public MarketPackRuntime MarketPackRuntime => marketPackRuntime;
+    public FoodRuntime FoodRuntime => foodRuntime;
+    public CombatParticipantRuntime CombatParticipantRuntime => combatParticipantRuntime;
+    public CardTransformationRuntime TransformationRuntime => transformationRuntime;
     public bool HasRuntimeValueOverride => hasRuntimeValueOverride;
     public int RuntimeValueOverride => runtimeValueOverride;
 
@@ -61,6 +81,9 @@ public class CardInstance : MonoBehaviour
         if (buildingRuntime == null) buildingRuntime = GetComponent<BuildingRuntime>();
         if (containerRuntime == null) containerRuntime = GetComponent<ContainerRuntime>();
         if (marketPackRuntime == null) marketPackRuntime = GetComponent<MarketPackRuntime>();
+        if (foodRuntime == null) foodRuntime = GetComponent<FoodRuntime>();
+        if (combatParticipantRuntime == null) combatParticipantRuntime = GetComponent<CombatParticipantRuntime>();
+        if (transformationRuntime == null) transformationRuntime = GetComponent<CardTransformationRuntime>();
     }
 
     public void Initialize(CardData data)
@@ -87,10 +110,23 @@ public class CardInstance : MonoBehaviour
         AutoAssignRuntimeReferences();
         DisableAllSpecializedRuntimes();
 
-        if (data is UnitCardData unitData && unitRuntime != null)
+        if (data is UnitCardData unitData)
         {
+            if (unitRuntime == null)
+                unitRuntime = gameObject.AddComponent<UnitRuntime>();
+
             unitRuntime.enabled = true;
             unitRuntime.Initialize(unitData);
+        }
+
+        if (data is CombatantCardData combatantData)
+        {
+
+            if (combatParticipantRuntime == null)
+                combatParticipantRuntime = gameObject.AddComponent<CombatParticipantRuntime>();
+
+            combatParticipantRuntime.enabled = true;
+            combatParticipantRuntime.Initialize(combatantData);
         }
 
         if (data is BuildingCardData buildingData && buildingRuntime != null)
@@ -103,6 +139,33 @@ public class CardInstance : MonoBehaviour
         {
             containerRuntime.enabled = true;
             containerRuntime.Initialize(containerData);
+        }
+
+        if (data is FoodResourceCardData foodCardData)
+        {
+            if (foodRuntime == null)
+                foodRuntime = gameObject.AddComponent<FoodRuntime>();
+
+            foodRuntime.enabled = true;
+            foodRuntime.Initialize(foodCardData);
+        }
+
+        if (data != null && data.transformationRule != null)
+        {
+            CardTransformationRule rule = data.transformationRule;
+            if (rule.sourceCard != data)
+            {
+                Debug.LogWarning(
+                    $"[CardInstance] '{data.name}' references transformation rule '{rule.name}' but that rule expects '{(rule.sourceCard != null ? rule.sourceCard.name : "null")}'. Transformation runtime was not started.",
+                    this);
+                return;
+            }
+
+            if (transformationRuntime == null)
+                transformationRuntime = gameObject.AddComponent<CardTransformationRuntime>();
+
+            transformationRuntime.enabled = true;
+            transformationRuntime.Initialize(rule);
         }
     }
 
@@ -119,6 +182,15 @@ public class CardInstance : MonoBehaviour
 
         if (marketPackRuntime != null)
             marketPackRuntime.enabled = false;
+
+        if (foodRuntime != null)
+            foodRuntime.enabled = false;
+
+        if (combatParticipantRuntime != null)
+            combatParticipantRuntime.enabled = false;
+
+        if (transformationRuntime != null)
+            transformationRuntime.enabled = false;
     }
 
     public bool HasActiveContainerRuntime()
@@ -198,14 +270,17 @@ public class CardInstance : MonoBehaviour
         View?.Refresh();
     }
 
-    public bool HasTag(string tag)
+    public bool HasCapability(CardCapabilityType capability)
     {
-        return data != null && data.tags.Contains(tag);
+        if (data == null || capability == CardCapabilityType.None)
+            return false;
+
+        return data.capabilities != null && data.capabilities.Contains(capability);
     }
 
     public bool IsMovable()
     {
-        return data != null && data.isMovable;
+        return data != null && data.isMovable && !isBusy;
     }
 
     public bool IsStackable()
@@ -231,6 +306,13 @@ public class CardInstance : MonoBehaviour
         return data != null ? Mathf.Max(0f, data.weight) : 0f;
     }
 
+    public bool IsInCombat()
+    {
+        return combatParticipantRuntime != null
+            && combatParticipantRuntime.isActiveAndEnabled
+            && combatParticipantRuntime.IsInCombat;
+    }
+
     public bool HasLimitedUses() => usesRemaining > 0;
 
     public bool ConsumeUseIfNeeded()
@@ -254,7 +336,11 @@ public class CardInstance : MonoBehaviour
                 usesRemaining = usesRemaining,
                 anchoredPosition = RectTransform != null ? RectTransform.anchoredPosition : Vector2.zero,
                 hasRuntimeValueOverride = hasRuntimeValueOverride,
-                runtimeValueOverride = runtimeValueOverride
+                runtimeValueOverride = runtimeValueOverride,
+                hasRemainingFoodValue = foodRuntime != null && foodRuntime.isActiveAndEnabled,
+                remainingFoodValue = foodRuntime != null && foodRuntime.isActiveAndEnabled ? foodRuntime.RemainingFoodValue : 0,
+                hasTransformationProgress = transformationRuntime != null && transformationRuntime.isActiveAndEnabled && transformationRuntime.ActiveRule != null,
+                transformationElapsedTime = transformationRuntime != null && transformationRuntime.isActiveAndEnabled ? transformationRuntime.ElapsedTime : 0f
             }
         };
     }
@@ -274,11 +360,44 @@ public class CardInstance : MonoBehaviour
             SetRuntimeValueOverride(runtime.runtimeValueOverride);
         else
             ClearRuntimeValueOverride();
+
+        if (foodRuntime != null && foodRuntime.isActiveAndEnabled && runtime.hasRemainingFoodValue)
+            foodRuntime.SetRemainingFoodValue(runtime.remainingFoodValue);
+
+        if (transformationRuntime != null && transformationRuntime.isActiveAndEnabled && runtime.hasTransformationProgress)
+            transformationRuntime.SetProgress(runtime.transformationElapsedTime);
+    }
+
+    private void HandleBoardRootAvailable(BoardRoot boardRoot)
+    {
+        TryRegisterWithBoard();
+    }
+
+    private void TryRegisterWithBoard()
+    {
+        BoardRoot boardRoot = BoardRoot.Instance;
+        if (boardRoot == null)
+            return;
+
+        if (registeredBoardRoot == boardRoot)
+            return;
+
+        UnregisterFromBoardIfNeeded();
+        registeredBoardRoot = boardRoot;
+        registeredBoardRoot.RegisterCard(this);
+    }
+
+    private void UnregisterFromBoardIfNeeded()
+    {
+        if (registeredBoardRoot == null)
+            return;
+
+        registeredBoardRoot.UnregisterCard(this);
+        registeredBoardRoot = null;
     }
 
     private void OnDestroy()
     {
-        if (BoardRoot.Instance != null)
-            BoardRoot.Instance.UnregisterCard(this);
+        UnregisterFromBoardIfNeeded();
     }
 }

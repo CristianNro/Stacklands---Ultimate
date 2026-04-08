@@ -16,18 +16,16 @@ MonoBehaviour:
   cardName: Manzano
   displayName: Manzano
   description: Da manzanas arenosas
-  cardType: 0
+  cardType: 4
   rarity: 0
-  cardImage: {fileID: -656573927433736723, guid: d26dafbd602fc7b4cb909f56032907f3, type: 3}
+  cardImage: {fileID: -6307406724769728823, guid: 009a4e64735bb1143a1414261f812a13, type: 3}
+  cardIcon: {fileID: -656573927433736723, guid: 81d2a1286d9e5984ba626b9c664caa03, type: 3}
   stackable: 1
   isMovable: 1
-  isConsumable: 1
-  isDestroyable: 1
   weight: 1
-  value: 5
-  consumeOnRecipe: 1
-  maxUses: 5
-  tags:
-  - Manzano
+  value: 2
+  isCurrency: 0
+  currencyType: 0
+  maxUses: 4
+  capabilities: 02000000
   resourceType: 0
-  maxStack: 10

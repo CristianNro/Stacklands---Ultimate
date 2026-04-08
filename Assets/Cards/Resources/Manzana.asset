@@ -9,20 +9,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99d561ea98da8fa4ea70169d6f5ac408, type: 3}
+  m_Script: {fileID: 11500000, guid: f47e3f78dbacfe24289c6a01e47b1bb2, type: 3}
   m_Name: Manzana
-  m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
+  m_EditorClassIdentifier: Assembly-CSharp::FoodResourceCardData
   id: Manzana
   cardName: Manzana
   displayName: Manzana
-  description: 'Esta un poco arenosa '
+  description: 
   cardType: 5
   rarity: 0
-  cardImage: {fileID: -1389860050349794336, guid: 326924d6239644148a6815449afbffe3, type: 3}
+  cardImage: {fileID: 5362735838549604449, guid: 2ae5ae6a963a2424ba872211b2ea2946, type: 3}
+  cardIcon: {fileID: -1389860050349794336, guid: c5188843ba28b22429895b8f8afa2813, type: 3}
   stackable: 1
   isMovable: 1
   weight: 1
-  value: 4
-  maxUses: 1
-  tags: []
+  value: 0
+  isCurrency: 0
+  currencyType: 0
+  maxUses: 0
+  capabilities: 
+  transformationRule: {fileID: 0}
   resourceType: 3
+  foodValue: 2
+  spoilAfterSeconds: 180

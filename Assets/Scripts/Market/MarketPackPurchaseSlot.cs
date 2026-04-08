@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using StacklandsLike.Cards;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 // ============================================================
 // MarketPackPurchaseSlot
@@ -20,7 +23,7 @@ using StacklandsLike.Cards;
 // - devuelve cambio en monedas de valor 1
 // - spawnea el pack debajo del slot
 // ============================================================
-public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler
+public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler, ICardDropTargetSource
 {
     [Header("Pack")]
     // Sobre que vende este slot.
@@ -48,6 +51,10 @@ public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler
     [SerializeField] private float occupiedRadius = 70f;
 
     public BaseMarketPackData PackData => packData;
+    public CurrencyFilterMode AcceptedCurrencyFilterMode => acceptedCurrencyFilterMode;
+    public IReadOnlyList<CurrencyType> AcceptedCurrencyTypes => acceptedCurrencyTypes;
+    public IReadOnlyList<CardData> ChangeCurrencyCards => changeCurrencyCards;
+    public float ChangeSpacing => changeSpacing;
 
     public void OnDrop(PointerEventData eventData)
     {
@@ -57,130 +64,17 @@ public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler
 
     public bool TryPurchaseFromDrop(CardView draggedCard, CardStack draggedStack)
     {
-        if (packData == null)
-        {
-            Debug.LogWarning($"[{name}] No tiene un MarketPackData asignado.");
-            return false;
-        }
-
-        MarketTransactionService.PaymentContext paymentContext = MarketTransactionService.BuildPaymentContext(
-            draggedCard,
-            draggedStack,
-            acceptedCurrencyFilterMode,
-            acceptedCurrencyTypes);
-        if (paymentContext == null)
-            return false;
-
-        List<MarketTransactionService.PaymentUnit> selectedUnits = MarketTransactionService.SelectUnitsToConsume(paymentContext.availableUnits, packData.price, out int totalPaidValue);
-        if (selectedUnits == null || selectedUnits.Count == 0 || totalPaidValue < packData.price)
-        {
-            Debug.Log($"[{name}] El pago no alcanza para comprar '{packData.displayName}'.");
-            return false;
-        }
-
-        MarketTransactionService.ConsumePaymentUnits(paymentContext, selectedUnits);
-
-        GameObject spawnedPack = SpawnPurchasedPack();
-        int changeValue = totalPaidValue - packData.price;
-
-        if (changeValue > 0)
-            ReturnChange(changeValue, paymentContext, spawnedPack);
-
-        return true;
+        return MarketTransactionCoordinator.TryPurchase(this, draggedCard, draggedStack);
     }
 
-    private void ReturnChange(int changeValue, MarketTransactionService.PaymentContext paymentContext, GameObject spawnedPack)
+    public void PopulateDropTargetInfo(CardDropTargetInfo targetInfo)
     {
-        if (changeValue <= 0)
+        if (targetInfo == null)
             return;
 
-        // Si el pago vino de un cofre individual, el cambio vuelve al mismo
-        // contenedor en lugar de aparecer en el tablero.
-        if (paymentContext != null && paymentContext.draggedContainer != null && paymentContext.draggedStack == null)
-        {
-            if (StoreChangeInContainer(changeValue, paymentContext.draggedContainer))
-                return;
-        }
-
-        SpawnChangeOnBoard(changeValue, spawnedPack);
-    }
-
-    private bool StoreChangeInContainer(int changeValue, ContainerRuntime containerRuntime)
-    {
-        if (containerRuntime == null || changeValue <= 0)
-            return false;
-
-        List<CardData> changeCardsToStore = MarketEconomyService.BuildBestValueCombination(
-            changeCurrencyCards,
-            changeValue,
-            acceptedCurrencyFilterMode,
-            acceptedCurrencyTypes);
-        if (changeCardsToStore == null || changeCardsToStore.Count == 0)
-            return false;
-
-        List<ContainerStorageService.StoredCardSnapshot> snapshotsToAdd = new List<ContainerStorageService.StoredCardSnapshot>();
-
-        for (int i = 0; i < changeCardsToStore.Count; i++)
-        {
-            CardData cardData = changeCardsToStore[i];
-            if (cardData == null)
-                continue;
-
-            ContainerStorageService.StoredCardSnapshot snapshot =
-                ContainerStorageService.CreateSnapshotFromCardData(cardData, cardData.maxUses, Vector2.zero);
-
-            if (snapshot != null)
-                snapshotsToAdd.Add(snapshot);
-        }
-
-        if (snapshotsToAdd.Count == 0)
-            return false;
-
-        ContainerStorageService storage = ContainerStorageService.GetOrCreate();
-        storage.AddStoredSnapshots(containerRuntime.ContainerId, snapshotsToAdd);
-        containerRuntime.RefreshRuntimeValueFromContents();
-        return true;
-    }
-
-    private void SpawnChangeOnBoard(int changeValue, GameObject spawnedPack)
-    {
-        if (changeValue <= 0)
-            return;
-
-        if (CardSpawner.Instance == null)
-        {
-            Debug.LogWarning($"[{name}] No se puede devolver cambio porque falta CardSpawner.Instance.");
-            return;
-        }
-
-        List<CardData> changeCardsToSpawn = MarketEconomyService.BuildBestValueCombination(
-            changeCurrencyCards,
-            changeValue,
-            acceptedCurrencyFilterMode,
-            acceptedCurrencyTypes);
-        if (changeCardsToSpawn == null || changeCardsToSpawn.Count == 0)
-        {
-            Debug.LogWarning($"[{name}] No existe una combinacion de cambio valida para devolver {changeValue}.");
-            return;
-        }
-
-        Vector2 basePosition = GetPreferredSpawnPosition();
-
-        if (spawnedPack != null)
-        {
-            RectTransform packRect = spawnedPack.GetComponent<RectTransform>();
-            if (packRect != null)
-                basePosition = packRect.anchoredPosition + new Vector2(0f, -28f);
-        }
-
-        float startOffsetX = -((changeCardsToSpawn.Count - 1) * changeSpacing) * 0.5f;
-
-        for (int i = 0; i < changeCardsToSpawn.Count; i++)
-        {
-            Vector2 preferredPosition = basePosition + new Vector2(startOffsetX + (i * changeSpacing), 0f);
-            Vector2 spawnPosition = FindNearestFreeSpawnPosition(preferredPosition);
-            CardSpawner.Instance.Spawn(changeCardsToSpawn[i], spawnPosition);
-        }
+        targetInfo.marketPurchaseSlot = this;
+        if (targetInfo.primaryType == CardDropTargetType.None)
+            targetInfo.primaryType = CardDropTargetType.MarketPurchase;
     }
 
     /// <summary>
@@ -222,18 +116,31 @@ public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler
     public Vector2 GetPreferredSpawnPosition()
     {
         RectTransform slotRect = transform as RectTransform;
-        RectTransform boardRect = BoardRoot.Instance != null ? BoardRoot.Instance.CardsContainer : null;
-
-        if (slotRect == null || boardRect == null)
+        if (slotRect == null)
             return Vector2.zero;
 
-        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, slotRect.position);
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            boardRect,
-            screenPoint,
-            null,
-            out Vector2 boardPoint
-        );
+        Vector2 boardPoint;
+
+        if (BoardRoot.Instance != null)
+        {
+            boardPoint = BoardRoot.Instance.GetBoardPointFromWorldPosition(slotRect.position);
+        }
+        else
+        {
+            RectTransform boardRect = null;
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, slotRect.position);
+
+            boardRect = BoardRoot.Instance != null ? BoardRoot.Instance.CardsContainer : null;
+            if (boardRect == null)
+                return Vector2.zero;
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                boardRect,
+                screenPoint,
+                null,
+                out boardPoint
+            );
+        }
 
         boardPoint.y -= spawnOffsetY;
         return boardPoint;
@@ -250,4 +157,14 @@ public class MarketPackPurchaseSlot : MonoBehaviour, IDropHandler
 
         return BoardRoot.Instance.FindNearestFreePoint(preferredPosition, occupiedRadius, searchStep, maxSearchRings);
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        MarketValidationUtility.ValidateAndLogPurchaseSlot(this);
+    }
+#endif
 }

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="20" result="Passed" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0,0308377">
+  <test-suite type="TestSuite" id="1034" name="Stacklands - Ultimate" fullname="Stacklands - Ultimate" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.030838" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1025" name="Assembly-CSharp-Editor.dll" fullname="C:/Users/raddi/Stacklands - Ultimate/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.028680" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="38160" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1001" name="ContainerStorageServiceTests" fullname="ContainerStorageServiceTests" classname="ContainerStorageServiceTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.001251" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1003" name="GetStoredTotalValue_UsesRuntimeOverrideWhenPresent" fullname="ContainerStorageServiceTests.GetStoredTotalValue_UsesRuntimeOverrideWhenPresent" methodname="GetStoredTotalValue_UsesRuntimeOverrideWhenPresent" classname="ContainerStorageServiceTests" runstate="Runnable" seed="811858783" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000357" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1002" name="StoredSnapshot_RoundTrip_PreservesUsesAndRuntimeValueOverride" fullname="ContainerStorageServiceTests.StoredSnapshot_RoundTrip_PreservesUsesAndRuntimeValueOverride" methodname="StoredSnapshot_RoundTrip_PreservesUsesAndRuntimeValueOverride" classname="ContainerStorageServiceTests" runstate="Runnable" seed="1188964220" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000260" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1004" name="MarketEconomyServiceTests" fullname="MarketEconomyServiceTests" classname="MarketEconomyServiceTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.007565" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1009" name="BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" fullname="MarketEconomyServiceTests.BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" methodname="BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" classname="MarketEconomyServiceTests" runstate="Runnable" seed="213461941" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.001516" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1006" name="BuildBestValueCombination_PrefersFewerCards" fullname="MarketEconomyServiceTests.BuildBestValueCombination_PrefersFewerCards" methodname="BuildBestValueCombination_PrefersFewerCards" classname="MarketEconomyServiceTests" runstate="Runnable" seed="956203584" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000678" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1007" name="BuildBestValueCombination_RespectsCurrencyFilter" fullname="MarketEconomyServiceTests.BuildBestValueCombination_RespectsCurrencyFilter" methodname="BuildBestValueCombination_RespectsCurrencyFilter" classname="MarketEconomyServiceTests" runstate="Runnable" seed="525534734" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000453" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1008" name="BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" fullname="MarketEconomyServiceTests.BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" methodname="BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" classname="MarketEconomyServiceTests" runstate="Runnable" seed="1764972632" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000332" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1005" name="MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" fullname="MarketEconomyServiceTests.MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" methodname="MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" classname="MarketEconomyServiceTests" runstate="Runnable" seed="1662849384" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000311" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1010" name="RecipeMatcherTests" fullname="RecipeMatcherTests" classname="RecipeMatcherTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.013301" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1016" name="Evaluate_CapabilityRequirementsOnly_MatchesWhenAllCardsAreAllowedAndRequirementIsMet" fullname="RecipeMatcherTests.Evaluate_CapabilityRequirementsOnly_MatchesWhenAllCardsAreAllowedAndRequirementIsMet" methodname="Evaluate_CapabilityRequirementsOnly_MatchesWhenAllCardsAreAllowedAndRequirementIsMet" classname="RecipeMatcherTests" runstate="Runnable" seed="453295923" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.003426" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1017" name="Evaluate_CapabilityRequirementsOnly_MatchesWithoutSourceStack" fullname="RecipeMatcherTests.Evaluate_CapabilityRequirementsOnly_MatchesWithoutSourceStack" methodname="Evaluate_CapabilityRequirementsOnly_MatchesWithoutSourceStack" classname="RecipeMatcherTests" runstate="Runnable" seed="1668599655" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000340" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1018" name="Evaluate_CapabilityRequirementsOnly_RejectsCardsOutsideAllowedCapabilities" fullname="RecipeMatcherTests.Evaluate_CapabilityRequirementsOnly_RejectsCardsOutsideAllowedCapabilities" methodname="Evaluate_CapabilityRequirementsOnly_RejectsCardsOutsideAllowedCapabilities" classname="RecipeMatcherTests" runstate="Runnable" seed="416931842" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000910" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1019" name="Evaluate_CapabilityRequirementsOnly_RejectsWhenCapabilityExceedsMaximum" fullname="RecipeMatcherTests.Evaluate_CapabilityRequirementsOnly_RejectsWhenCapabilityExceedsMaximum" methodname="Evaluate_CapabilityRequirementsOnly_RejectsWhenCapabilityExceedsMaximum" classname="RecipeMatcherTests" runstate="Runnable" seed="1026718408" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000341" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1012" name="Evaluate_ExactIngredients_AllowsAdditionalCopies_WhenConfigured" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_AllowsAdditionalCopies_WhenConfigured" methodname="Evaluate_ExactIngredients_AllowsAdditionalCopies_WhenConfigured" classname="RecipeMatcherTests" runstate="Runnable" seed="283802330" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.001355" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1011" name="Evaluate_ExactIngredients_MatchesRequiredCards" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_MatchesRequiredCards" methodname="Evaluate_ExactIngredients_MatchesRequiredCards" classname="RecipeMatcherTests" runstate="Runnable" seed="1190160268" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000275" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1015" name="Evaluate_ExactIngredients_MatchesWhenRequiredCountIsMet" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_MatchesWhenRequiredCountIsMet" methodname="Evaluate_ExactIngredients_MatchesWhenRequiredCountIsMet" classname="RecipeMatcherTests" runstate="Runnable" seed="1069473730" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000275" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1013" name="Evaluate_ExactIngredients_RejectsUnexpectedExtraCopies_WhenNotConfigured" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_RejectsUnexpectedExtraCopies_WhenNotConfigured" methodname="Evaluate_ExactIngredients_RejectsUnexpectedExtraCopies_WhenNotConfigured" classname="RecipeMatcherTests" runstate="Runnable" seed="241259459" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000460" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1020" name="Evaluate_ExactIngredients_RejectsWhenCapabilityExceedsMaximum" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_RejectsWhenCapabilityExceedsMaximum" methodname="Evaluate_ExactIngredients_RejectsWhenCapabilityExceedsMaximum" classname="RecipeMatcherTests" runstate="Runnable" seed="179687711" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000337" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1014" name="Evaluate_ExactIngredients_RequiresMinimumCount_WhenRuleOverridesIngredientCount" fullname="RecipeMatcherTests.Evaluate_ExactIngredients_RequiresMinimumCount_WhenRuleOverridesIngredientCount" methodname="Evaluate_ExactIngredients_RequiresMinimumCount_WhenRuleOverridesIngredientCount" classname="RecipeMatcherTests" runstate="Runnable" seed="1244676722" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000367" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1021" name="RecipeTimingResolverTests" fullname="RecipeTimingResolverTests" classname="RecipeTimingResolverTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.005745" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1023" name="GetCraftTime_AppliesCapabilityMultiplier" fullname="RecipeTimingResolverTests.GetCraftTime_AppliesCapabilityMultiplier" methodname="GetCraftTime_AppliesCapabilityMultiplier" classname="RecipeTimingResolverTests" runstate="Runnable" seed="261621447" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.001873" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1024" name="GetCraftTime_RespectsMaxApplications" fullname="RecipeTimingResolverTests.GetCraftTime_RespectsMaxApplications" methodname="GetCraftTime_RespectsMaxApplications" classname="RecipeTimingResolverTests" runstate="Runnable" seed="174037872" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000335" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1022" name="GetCraftTime_ReturnsBaseTime_WhenNoModifiersApply" fullname="RecipeTimingResolverTests.GetCraftTime_ReturnsBaseTime_WhenNoModifiersApply" methodname="GetCraftTime_ReturnsBaseTime_WhenNoModifiersApply" classname="RecipeTimingResolverTests" runstate="Runnable" seed="473720146" result="Passed" start-time="2026-04-02 20:11:38Z" end-time="2026-04-02 20:11:38Z" duration="0.000187" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Saving results to: C:/Users/raddi/AppData/LocalLow/DefaultCompany/Stacklands - Ultimate\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

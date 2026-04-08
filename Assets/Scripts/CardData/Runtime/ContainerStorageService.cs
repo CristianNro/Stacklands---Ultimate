@@ -19,6 +19,12 @@ public class ContainerStorageService : MonoBehaviour
         // Override opcional del value runtime.
         public bool hasRuntimeValueOverride;
         public int runtimeValueOverride;
+        // Estado runtime especifico para comida parcial.
+        public bool hasRemainingFoodValue;
+        public int remainingFoodValue;
+        // Estado runtime basico para transformaciones individuales.
+        public bool hasTransformationProgress;
+        public float transformationElapsedTime;
     }
 
     [System.Serializable]
@@ -218,7 +224,11 @@ public class ContainerStorageService : MonoBehaviour
                 usesRemaining = usesRemaining,
                 anchoredPosition = anchoredPosition ?? Vector2.zero,
                 hasRuntimeValueOverride = false,
-                runtimeValueOverride = 0
+                runtimeValueOverride = 0,
+                hasRemainingFoodValue = false,
+                remainingFoodValue = 0,
+                hasTransformationProgress = false,
+                transformationElapsedTime = 0f
             }
         };
     }

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5ed49eee4fc1914987e11d06fbe7ba7, type: 3}
+  m_Name: EnemiesPortal
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingCardData
+  id: Portal
+  cardName: Portal
+  displayName: Portal
+  description: Portal
+  cardType: 2
+  rarity: 1
+  cardImage: {fileID: 6041240624108988605, guid: 3b3950dc94875d948ae5543eb711e61c, type: 3}
+  cardIcon: {fileID: -5816642994671486895, guid: ceb5601903a7e864884c5373a843463c, type: 3}
+  stackable: 0
+  isMovable: 1
+  weight: 1
+  value: 0
+  isCurrency: 0
+  currencyType: 0
+  maxUses: 0
+  capabilities: 
+  transformationRule: {fileID: 11400000, guid: f226e3f3c5b7ac44b8ecafc1b09f80dc, type: 2}
+  durability: 999

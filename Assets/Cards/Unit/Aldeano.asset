@@ -18,7 +18,8 @@ MonoBehaviour:
   description: Un gran trabajador
   cardType: 1
   rarity: 0
-  cardImage: {fileID: 1852479133113935047, guid: 0d6898f150e9a9543b0ce46abf301846, type: 3}
+  cardImage: {fileID: -6620443678240376230, guid: 5bbb4f31e32a01741971f227e1c274b8, type: 3}
+  cardIcon: {fileID: 6197807506736601629, guid: 2b407cc2fdceceb499449b06709ec9b0, type: 3}
   stackable: 1
   isMovable: 1
   weight: 1
@@ -26,9 +27,17 @@ MonoBehaviour:
   isCurrency: 0
   currencyType: 0
   maxUses: 0
-  tags:
-  - Worker
-  unitRole: 0
+  capabilities: 01000000
+  transformationRule: {fileID: 0}
   faction: 0
-  maxHealth: 10
+  maxHealth: 100
+  attackDamage: 1
+  attackInterval: 1
+  basePhysicalArmor: 0
+  baseMagicalArmor: 0
+  attackDefenseChannel: 0
+  attackDamageTypes: 
+  receivedDamageModifiers: []
+  unitRole: 0
   maxHunger: 1
+  dailyFoodConsumption: 1

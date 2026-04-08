@@ -13,7 +13,7 @@ These are not absolute guarantees. They are the safest areas relative to the cur
 Safer extensions:
 
 - new data fields that are consumed by a real system
-- stricter validation around card identity or tags
+- stricter validation around card identity, typed classifications and capabilities
 - runtime state additions with clear ownership
 - visual-only card presentation improvements
 
@@ -42,6 +42,7 @@ Safer extensions:
 - tighter validation around recipe data
 - improved specificity rules
 - stronger matching helpers
+- extending capability-driven recipe requirements without reintroducing weak string contracts
 
 Avoid:
 
@@ -58,6 +59,35 @@ Safer extensions:
 Avoid:
 
 - bypassing the task system for timed recipe execution
+
+### Day cycle
+
+Safer extensions:
+
+- new `IDayEndProcessor` implementations for explicit end-of-day rules
+- new `IDayStartProcessor` implementations for start-of-day world logic
+- richer `DayEventDefinition` data when it still keeps selection and execution separated
+- UI additions that read from `GameTimeService` without becoming time authority
+
+Avoid:
+
+- putting food, event or world-spawn logic directly into `GameTimeService`
+- bypassing `DayCycleCoordinator` when adding ordered day-start or day-end behavior
+
+### Single-card transformations
+
+Safer extensions:
+
+- new `CardTransformationRule` assets
+- new capability-driven pause or speed rules
+- executor improvements that still reuse `CardSpawner` and board-safe placement
+- additional visuals that read from `CardTransformationRuntime`
+
+Avoid:
+
+- re-implementing this mechanic as stack recipes
+- bypassing `CardTransformationSystem` with ad hoc per-card timers
+- moving transformation authority into `CardView`
 
 ### Board/layout
 
@@ -78,6 +108,9 @@ Safer extensions:
 - extracting shared payment/change logic into reusable services
 - better currency typing and validation
 - consolidating exact-combination and card-consumption rules in a shared market service
+- moving purchase/sell orchestration into market-domain coordinators instead of slot scripts
+- routing market valuation through an explicit pricing service before introducing richer pricing rules
+- routing reward/change delivery through a dedicated delivery service instead of slot scripts
 
 Avoid:
 

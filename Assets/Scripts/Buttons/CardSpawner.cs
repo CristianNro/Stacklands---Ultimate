@@ -1,5 +1,9 @@
 using UnityEngine;
 using System.Collections;
+using System.Diagnostics;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 // Este componente se encarga de instanciar cartas correctamente.
 public class CardSpawner : MonoBehaviour
@@ -20,13 +24,20 @@ public class CardSpawner : MonoBehaviour
     // Duracion del deslizamiento final cuando la carta debe correrse.
     [SerializeField] private float overlapResolveDuration = 0.28f;
 
+    [Header("Debug")]
+    [SerializeField] private bool debugSpawnTimings = false;
+    [SerializeField] private float debugLogThresholdMs = 1f;
+
     public static CardSpawner Instance { get; private set; }
 
     public Transform CardsParent => GetSpawnParent();
+    public GameObject CardPrefab => cardPrefab;
+    public Transform CardsParentFallback => cardsParent;
 
     private void Awake()
     {
         Instance = this;
+        CardView.PrewarmSharedResources();
     }
 
     private Transform GetSpawnParent()
@@ -39,8 +50,14 @@ public class CardSpawner : MonoBehaviour
 
     public GameObject Spawn(CardData data, Vector2 anchoredPosition)
     {
+        Stopwatch stopwatch = debugSpawnTimings ? Stopwatch.StartNew() : null;
+        long instantiateMs = 0L;
+        long initializeMs = 0L;
+
         Transform parent = GetSpawnParent();
         GameObject go = Instantiate(cardPrefab, parent);
+        if (stopwatch != null)
+            instantiateMs = stopwatch.ElapsedMilliseconds;
 
         RectTransform rt = go.GetComponent<RectTransform>();
         NormalizeRectTransform(rt);
@@ -52,8 +69,6 @@ public class CardSpawner : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[{go.name}] No tiene CardInitializer. Se inicializa por fallback.");
-
             CardInstance instanceFallback = go.GetComponent<CardInstance>();
             if (instanceFallback != null)
                 instanceFallback.Initialize(data);
@@ -62,6 +77,8 @@ public class CardSpawner : MonoBehaviour
             if (viewFallback != null)
                 viewFallback.Refresh();
         }
+        if (stopwatch != null)
+            initializeMs = stopwatch.ElapsedMilliseconds;
 
         // IMPORTANTE:
         // La posición final se corrige contra el board para que nunca nazca fuera.
@@ -69,9 +86,8 @@ public class CardSpawner : MonoBehaviour
 
         rt.anchoredPosition = finalPosition;
 
-        CardInstance instance = go.GetComponent<CardInstance>();
-        if (instance != null && BoardRoot.Instance != null)
-            BoardRoot.Instance.RegisterCard(instance);
+        if (stopwatch != null)
+            LogSpawnTiming("Spawn", data, instantiateMs, initializeMs, stopwatch.ElapsedMilliseconds);
 
         return go;
     }
@@ -91,6 +107,11 @@ public class CardSpawner : MonoBehaviour
     /// </summary>
     public GameObject SpawnAnimatedToPosition(CardData data, Vector2 startPos, Vector2 endPos, float duration = 0.35f)
     {
+        Stopwatch stopwatch = debugSpawnTimings ? Stopwatch.StartNew() : null;
+        long instantiateMs = 0L;
+        long initializeMs = 0L;
+        long clampMs = 0L;
+
         if (duration <= 0f)
             duration = animatedSpawnDuration;
 
@@ -104,6 +125,8 @@ public class CardSpawner : MonoBehaviour
             // Instanciamos primero para poder usar el tamaño real del prefab
             Transform parent = GetSpawnParent();
             GameObject go = Instantiate(cardPrefab, parent);
+            if (stopwatch != null)
+                instantiateMs = stopwatch.ElapsedMilliseconds;
 
             RectTransform rt = go.GetComponent<RectTransform>();
             NormalizeRectTransform(rt);
@@ -115,8 +138,6 @@ public class CardSpawner : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"[{go.name}] No tiene CardInitializer. Se inicializa por fallback.");
-
                 CardInstance instanceFallback = go.GetComponent<CardInstance>();
                 if (instanceFallback != null)
                     instanceFallback.Initialize(data);
@@ -125,17 +146,20 @@ public class CardSpawner : MonoBehaviour
                 if (viewFallback != null)
                     viewFallback.Refresh();
             }
+            if (stopwatch != null)
+                initializeMs = stopwatch.ElapsedMilliseconds;
 
             clampedStartPos = BoardRoot.Instance.GetClampedPosition(startPos, rt);
             clampedEndPos = BoardRoot.Instance.GetClampedPosition(rawEndPos, rt);
+            if (stopwatch != null)
+                clampMs = stopwatch.ElapsedMilliseconds;
 
             rt.anchoredPosition = clampedStartPos;
 
-            CardInstance instance = go.GetComponent<CardInstance>();
-            if (instance != null)
-                BoardRoot.Instance.RegisterCard(instance);
-
             StartCoroutine(AnimateMoveThenResolveOverlap(rt, clampedStartPos, clampedEndPos, duration));
+
+            if (stopwatch != null)
+                LogSpawnTiming("SpawnAnimatedToPosition", data, instantiateMs, initializeMs, stopwatch.ElapsedMilliseconds, clampMs);
 
             return go;
         }
@@ -231,4 +255,36 @@ public class CardSpawner : MonoBehaviour
 
         rt.anchoredPosition = endPos;
     }
+
+    private void LogSpawnTiming(string label, CardData data, long instantiateMs, long initializeMs, long totalMs, long clampMs = -1L)
+    {
+        if (!debugSpawnTimings || totalMs < debugLogThresholdMs)
+            return;
+
+        string cardLabel = data != null
+            ? (!string.IsNullOrWhiteSpace(data.displayName) ? data.displayName : data.cardName)
+            : "<null>";
+
+        string message =
+            $"[CardSpawner] {label} '{cardLabel}' took {totalMs} ms " +
+            $"(instantiate: {instantiateMs} ms, init/refresh: {Mathf.Max(0, initializeMs - instantiateMs)} ms";
+
+        if (clampMs >= 0L)
+            message += $", clamp/setup: {Mathf.Max(0, clampMs - initializeMs)} ms";
+
+        long finalStart = clampMs >= 0L ? clampMs : initializeMs;
+        message += $", final stage: {Mathf.Max(0, totalMs - finalStart)} ms).";
+
+        UnityEngine.Debug.Log(message, this);
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        InfrastructureValidationUtility.ValidateAndLogCardSpawner(this);
+    }
+#endif
 }

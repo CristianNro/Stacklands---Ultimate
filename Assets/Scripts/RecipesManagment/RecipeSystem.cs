@@ -5,7 +5,7 @@ using UnityEngine;
 // RecipeSystem
 // ------------------------------------------------------------
 // Observa stacks y decide si deben arrancar, mantenerse o
-// cancelarse segun la mejor receta disponible.
+// cancelarse segun el resultado completo de evaluacion.
 // ============================================================
 public class RecipeSystem : MonoBehaviour
 {
@@ -14,19 +14,21 @@ public class RecipeSystem : MonoBehaviour
 
     private void OnEnable()
     {
+        BoardRoot.OnBoardRootAvailable += HandleBoardRootAvailable;
         TrySubscribeToBoardRoot();
         RegisterAllExistingStacks();
     }
 
-    private void Update()
-    {
-        TrySubscribeToBoardRoot();
-    }
-
     private void OnDisable()
     {
+        BoardRoot.OnBoardRootAvailable -= HandleBoardRootAvailable;
         UnsubscribeFromBoardRoot();
         UnsubscribeAllStacks();
+    }
+
+    private void HandleBoardRootAvailable(BoardRoot boardRoot)
+    {
+        TrySubscribeToBoardRoot();
     }
 
     private void TrySubscribeToBoardRoot()
@@ -89,8 +91,7 @@ public class RecipeSystem : MonoBehaviour
         stack.OnStackChanged -= HandleStackChanged;
         subscribedStacks.Remove(stack);
 
-        if (TaskSystem.Instance != null)
-            TaskSystem.Instance.CancelTaskForStack(stack);
+        RecipeTaskService.CancelTaskForStack(stack);
     }
 
     private void HandleStackChanged(CardStack stack)
@@ -104,8 +105,7 @@ public class RecipeSystem : MonoBehaviour
 
         if (stack.IsEmpty() || stack.HasOnlyOneCard())
         {
-            if (TaskSystem.Instance != null)
-                TaskSystem.Instance.CancelTaskForStack(stack);
+            RecipeTaskService.CancelTaskForStack(stack);
 
             return;
         }
@@ -116,19 +116,23 @@ public class RecipeSystem : MonoBehaviour
             return;
         }
 
-        // La base ya devuelve la receta mas especifica para este stack.
-        RecipeData recipe = RecipeDatabase.Instance.FindRecipe(stack);
+        RecipeSelectionResult selection = RecipeDatabase.Instance.EvaluateStack(stack);
+        RecipeData recipe = selection != null ? selection.SelectedRecipe : null;
+
+        if (selection != null && selection.HasProblematicOverlap)
+        {
+            Debug.LogWarning(
+                $"[RecipeSystem] Problematic recipe overlap detected on stack '{stack.name}'. {selection.selectionReason}");
+        }
 
         if (recipe != null)
         {
-            if (TaskSystem.Instance != null)
-                TaskSystem.Instance.StartOrRefreshRecipeTask(stack, recipe);
+            RecipeTaskService.StartOrRefreshTask(stack, recipe);
 
             return;
         }
 
-        if (TaskSystem.Instance != null)
-            TaskSystem.Instance.CancelTaskForStack(stack);
+        RecipeTaskService.CancelTaskForStack(stack);
     }
 
     private void UnsubscribeAllStacks()

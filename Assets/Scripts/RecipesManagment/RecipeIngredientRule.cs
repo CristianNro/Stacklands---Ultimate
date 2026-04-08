@@ -17,8 +17,31 @@ using StacklandsLike.Cards;
 public class RecipeIngredientRule
 {
     [Header("Ingredient Match")]
-    public string cardId;
+    public CardData card;
+
+    [Header("Exact Ingredient Matching")]
+    [Min(1)]
+    public int requiredCount = 1;
+    public bool allowAdditionalCopies = false;
 
     [Header("Consume Behavior")]
     public RecipeIngredientConsumeMode consumeMode = RecipeIngredientConsumeMode.None;
+
+    public bool Matches(CardData cardData)
+    {
+        if (cardData == null || card == null)
+            return false;
+
+        return card == cardData;
+    }
+
+    public string GetIngredientCardId()
+    {
+        return card != null ? card.id : string.Empty;
+    }
+
+    public int GetNormalizedRequiredCount()
+    {
+        return Mathf.Max(1, requiredCount);
+    }
 }

@@ -1,6 +1,7 @@
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 using StacklandsLike.Cards;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "New Recipe", menuName = "Stacklands/Recipe")]
 public class RecipeData : ScriptableObject
@@ -12,7 +13,7 @@ public class RecipeData : ScriptableObject
     public string displayName;
 
     [Header("Behavior")]
-    // Define si la receta matchea por ingredientes exactos o solo por tags.
+    // Define si la receta matchea por ingredientes exactos o solo por requisitos.
     public RecipeMatchMode matchMode = RecipeMatchMode.ExactIngredients;
     // Define si corre una vez o si repite ciclos mientras el stack siga siendo valido.
     public RecipeExecutionMode executionMode = RecipeExecutionMode.Single;
@@ -21,9 +22,9 @@ public class RecipeData : ScriptableObject
     // Lista exacta de cartas requeridas cuando la receta usa ExactIngredients.
     public List<CardData> ingredients = new List<CardData>();
 
-    [Header("Tag Requirements")]
-    // Requisitos por tag que el stack debe cumplir para activar la receta.
-    public List<RecipeTagRequirement> tagRequirements = new List<RecipeTagRequirement>();
+    [Header("Capability Requirements")]
+    // Requisitos tipados que el stack debe cumplir para activar la receta.
+    public List<RecipeCapabilityRequirement> capabilityRequirements = new List<RecipeCapabilityRequirement>();
 
     [Header("Results")]
     // Resultado clasico de la receta cuando no se usan resultados ponderados.
@@ -34,6 +35,7 @@ public class RecipeData : ScriptableObject
     [Header("Timing")]
     // Tiempo base de cada ejecucion o de cada ciclo repetible.
     public float craftTime = 1f;
+    public List<RecipeDurationCapabilityModifier> durationCapabilityModifiers = new List<RecipeDurationCapabilityModifier>();
 
     [Header("Ingredient Consumption Rules")]
     // Reglas explicitas de consumo para cartas concretas al completar la receta.
@@ -45,18 +47,17 @@ public class RecipeData : ScriptableObject
     /// </summary>
     public virtual bool MatchesStack(CardStack stack)
     {
-        if (stack == null)
-            return false;
+        return EvaluateMatch(stack).matched;
+    }
 
-        switch (matchMode)
-        {
-            case RecipeMatchMode.TagRequirementsOnly:
-                return MatchesByTagRequirements(stack);
+    public virtual RecipeMatchResult EvaluateMatch(CardStack stack)
+    {
+        return EvaluateMatch(RecipeMatchInput.FromStack(stack));
+    }
 
-            case RecipeMatchMode.ExactIngredients:
-            default:
-                return MatchesByExactIngredients(stack);
-        }
+    public virtual RecipeMatchResult EvaluateMatch(RecipeMatchInput input)
+    {
+        return RecipeMatcher.Evaluate(this, input);
     }
 
     public bool IsRepeatable()
@@ -66,251 +67,102 @@ public class RecipeData : ScriptableObject
 
     public virtual float GetCraftTime()
     {
-        return Mathf.Max(0.01f, craftTime);
+        return RecipeTimingResolver.GetBaseCraftTime(this);
     }
 
-    /// <summary>
-    /// En recetas guiadas por tags, todo el stack debe pertenecer
-    /// a algun tag declarado en la receta.
-    /// </summary>
-    public bool IsCardAllowedByTags(CardData cardData)
+    public virtual float GetCraftTime(CardStack stack)
     {
-        if (cardData == null || cardData.tags == null || tagRequirements == null || tagRequirements.Count == 0)
-            return false;
-
-        for (int i = 0; i < tagRequirements.Count; i++)
-        {
-            RecipeTagRequirement requirement = tagRequirements[i];
-            if (requirement == null) continue;
-            if (string.IsNullOrWhiteSpace(requirement.tag)) continue;
-
-            if (cardData.tags.Contains(requirement.tag))
-                return true;
-        }
-
-        return false;
+        return GetCraftTime(RecipeMatchInput.FromStack(stack));
     }
 
-    /// <summary>
-    /// Verifica solo las cantidades minimas por tag.
-    /// Se usa como base tanto para recetas exactas como tag-driven.
-    /// </summary>
-    public bool ValidateTagRequirements(CardStack stack)
+    public virtual float GetCraftTime(RecipeMatchInput input)
     {
-        if (stack == null)
-            return false;
-
-        if (tagRequirements == null || tagRequirements.Count == 0)
-            return true;
-
-        for (int i = 0; i < tagRequirements.Count; i++)
-        {
-            RecipeTagRequirement requirement = tagRequirements[i];
-            if (requirement == null) continue;
-            if (string.IsNullOrWhiteSpace(requirement.tag)) continue;
-
-            int countInStack = stack.CountCardsWithTag(requirement.tag);
-            if (countInStack < requirement.minCount)
-                return false;
-        }
-
-        return true;
+        return RecipeTimingResolver.GetCraftTime(this, input);
     }
 
-    /// <summary>
-    /// Score simple de especificidad para desempatar recetas.
-    /// Exactas ganan sobre las guiadas solo por tags.
-    /// Luego se prioriza la que tenga mas requisitos concretos.
-    /// </summary>
+    public bool IsCardAllowedByCapabilities(CardData cardData)
+    {
+        return RecipeCapabilityEvaluator.IsCardAllowedByCapabilities(this, cardData);
+    }
+
+    public bool ValidateCapabilityRequirements(CardStack stack)
+    {
+        return ValidateCapabilityRequirements(RecipeMatchInput.FromStack(stack));
+    }
+
+    public bool ValidateCapabilityRequirements(RecipeMatchInput input)
+    {
+        return RecipeCapabilityEvaluator.ValidateCapabilityRequirements(this, input);
+    }
+
     public int GetSpecificityScore()
     {
-        int score = 0;
-
-        if (matchMode == RecipeMatchMode.ExactIngredients)
-            score += 10000;
-
-        score += ingredients != null ? ingredients.Count * 100 : 0;
-        score += tagRequirements != null ? tagRequirements.Count * 10 : 0;
-
-        if (IsRepeatable())
-            score += 1;
-
-        return score;
-    }
-
-    public RecipeIngredientRule GetRuleForCardId(string cardId)
-    {
-        if (ingredientRules == null || string.IsNullOrWhiteSpace(cardId))
-            return null;
-
-        for (int i = 0; i < ingredientRules.Count; i++)
-        {
-            RecipeIngredientRule rule = ingredientRules[i];
-            if (rule == null) continue;
-
-            if (rule.cardId == cardId)
-                return rule;
-        }
-
-        return null;
+        return RecipeSpecificityCalculator.GetSpecificityScore(this);
     }
 
     public bool HasMultipleResults()
     {
-        return possibleResults != null && possibleResults.Count > 0;
+        return RecipeResultResolver.HasMultipleResults(this);
     }
 
     public CardData RollResult()
     {
-        if (possibleResults != null && possibleResults.Count > 0)
-        {
-            float totalWeight = 0f;
-
-            for (int i = 0; i < possibleResults.Count; i++)
-            {
-                RecipeResultOption option = possibleResults[i];
-                if (option == null) continue;
-                if (option.result == null) continue;
-                if (option.weight <= 0f) continue;
-
-                totalWeight += option.weight;
-            }
-
-            if (totalWeight > 0f)
-            {
-                float roll = UnityEngine.Random.Range(0f, totalWeight);
-                float accumulated = 0f;
-
-                for (int i = 0; i < possibleResults.Count; i++)
-                {
-                    RecipeResultOption option = possibleResults[i];
-                    if (option == null) continue;
-                    if (option.result == null) continue;
-                    if (option.weight <= 0f) continue;
-
-                    accumulated += option.weight;
-
-                    if (roll <= accumulated)
-                        return option.result;
-                }
-            }
-        }
-
-        return result;
+        return RecipeResultResolver.RollResult(this);
     }
 
     public RecipeIngredientConsumeMode? GetConsumeModeForCard(CardData cardData)
     {
-        if (cardData == null) return null;
-
-        RecipeIngredientRule rule = GetRuleForCardId(cardData.id);
-        if (rule == null) return null;
-
-        return rule.consumeMode;
+        return RecipeIngredientRuleResolver.GetConsumeModeForCard(this, cardData);
     }
 
-    public bool HasTagRequirements()
+    public RecipeIngredientRule GetRuleForCard(CardData cardData)
     {
-        return tagRequirements != null && tagRequirements.Count > 0;
+        return RecipeIngredientRuleResolver.GetRuleForCard(this, cardData);
+    }
+
+    public bool HasCapabilityRequirements()
+    {
+        return RecipeCapabilityEvaluator.CountValidCapabilityRequirements(this) > 0;
+    }
+
+    public List<RecipeIngredientRule> GetExactIngredientRequirementsSnapshot()
+    {
+        return RecipeRequirementSnapshotBuilder.BuildExactIngredientRequirementsSnapshot(this);
+    }
+
+    public List<RecipeCapabilityRequirement> GetCapabilityRequirementsSnapshot()
+    {
+        return RecipeRequirementSnapshotBuilder.BuildCapabilityRequirementsSnapshot(this);
+    }
+
+    public string BuildCapabilityRequirementsSignatureForDatabase()
+    {
+        return RecipeSignatureBuilder.BuildCapabilityRequirementsSignature(this);
     }
 
     public bool ShouldIgnoreCardInIngredientMatch(CardData cardData)
     {
-        if (cardData == null || cardData.tags == null || tagRequirements == null)
-            return false;
-
-        for (int i = 0; i < tagRequirements.Count; i++)
-        {
-            RecipeTagRequirement requirement = tagRequirements[i];
-            if (requirement == null) continue;
-            if (!requirement.ignoreMatchingCardsInIngredientCheck) continue;
-            if (string.IsNullOrWhiteSpace(requirement.tag)) continue;
-
-            if (cardData.tags.Contains(requirement.tag))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool MatchesByExactIngredients(CardStack stack)
-    {
-        if (stack == null)
-            return false;
-
-        List<CardData> stackData = stack.GetCardDataList();
-        if (stackData == null)
-            return false;
-
-        List<CardData> filteredStackData = new List<CardData>();
-
-        for (int i = 0; i < stackData.Count; i++)
-        {
-            CardData card = stackData[i];
-            if (card == null) continue;
-
-            if (ShouldIgnoreCardInIngredientMatch(card))
-                continue;
-
-            filteredStackData.Add(card);
-        }
-
-        if (filteredStackData.Count != ingredients.Count)
-            return false;
-
-        List<string> stackIds = new List<string>();
-        List<string> recipeIds = new List<string>();
-
-        for (int i = 0; i < filteredStackData.Count; i++)
-        {
-            if (filteredStackData[i] != null)
-                stackIds.Add(filteredStackData[i].id);
-        }
-
-        for (int i = 0; i < ingredients.Count; i++)
-        {
-            if (ingredients[i] != null)
-                recipeIds.Add(ingredients[i].id);
-        }
-
-        stackIds.Sort();
-        recipeIds.Sort();
-
-        if (stackIds.Count != recipeIds.Count)
-            return false;
-
-        for (int i = 0; i < stackIds.Count; i++)
-        {
-            if (stackIds[i] != recipeIds[i])
-                return false;
-        }
-
-        return ValidateTagRequirements(stack);
-    }
-
-    private bool MatchesByTagRequirements(CardStack stack)
-    {
-        if (stack == null)
-            return false;
-
-        List<CardData> cards = stack.GetCardDataList();
-        if (cards == null || cards.Count == 0)
-            return false;
-
-        for (int i = 0; i < cards.Count; i++)
-        {
-            if (!IsCardAllowedByTags(cards[i]))
-                return false;
-        }
-
-        if (!ValidateTagRequirements(stack))
-            return false;
-
-        return true;
+        return RecipeCapabilityEvaluator.ShouldIgnoreCardInIngredientMatch(this, cardData);
     }
 
     public override string ToString()
     {
         return "Receta para " + result + ": " + string.Join(", ", ingredients);
     }
+
+    public bool IsValidForDatabase(out string validationError)
+    {
+        return RecipeDefinitionValidator.Validate(this, out validationError);
+    }
+
+    public string BuildUniquenessSignature()
+    {
+        return RecipeSignatureBuilder.BuildUniquenessSignature(this);
+    }
+
+    internal bool TryValidateCapabilityRequirements(RecipeMatchInput input, out string failureReason)
+    {
+        return RecipeCapabilityEvaluator.TryValidateCapabilityRequirements(this, input, out failureReason);
+    }
+
 }

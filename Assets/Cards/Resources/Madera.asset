@@ -18,11 +18,15 @@ MonoBehaviour:
   description: Es Madera
   cardType: 0
   rarity: 0
-  cardImage: {fileID: 3949051659483636451, guid: 8313a2914449bdb4a8687b7534878742, type: 3}
+  cardImage: {fileID: -6307406724769728823, guid: 009a4e64735bb1143a1414261f812a13, type: 3}
+  cardIcon: {fileID: 3949051659483636451, guid: 68c00eacd3b4a9f4fa857eef8830daee, type: 3}
   stackable: 1
   isMovable: 1
   weight: 1
   value: 2
+  isCurrency: 0
+  currencyType: 0
   maxUses: 1
+  capabilities: 
   tags: []
   resourceType: 0

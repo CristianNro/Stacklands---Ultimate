@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using UnityEngine.UI;
 using StacklandsLike.Cards;
 
 // ============================================================
@@ -19,7 +20,7 @@ using StacklandsLike.Cards;
 // - avisa cambios
 // - ejecuta crafting si otro sistema se lo pide
 // ============================================================
-public class CardStack : MonoBehaviour
+public class CardStack : MonoBehaviour, ICardDropTargetSource
 {
     [Header("Stack Data")]
     [SerializeField] private List<CardView> cards = new List<CardView>();
@@ -32,6 +33,8 @@ public class CardStack : MonoBehaviour
 
     private CardStackCraftingVisuals craftingVisuals;
     private bool lifecycleRegistered;
+    private RectTransform dropSurfaceRect;
+    private Image dropSurfaceImage;
 
     public IReadOnlyList<CardView> Cards => cards;
     public RecipeData ActiveRecipe => craftingVisuals != null ? craftingVisuals.ActiveRecipe : null;
@@ -68,6 +71,8 @@ public class CardStack : MonoBehaviour
 
         if (BoardRoot.Instance != null)
             BoardRoot.Instance.RegisterStack(this);
+
+        EnsureDropSurface();
     }
 
     private void OnDisable()
@@ -110,9 +115,19 @@ public class CardStack : MonoBehaviour
         if (card == null) return;
 
         RectTransform cardRT = card.GetComponent<RectTransform>();
-        RectTransform boardRT = GetBoardContainer();
+        if (cardRT == null)
+        {
+            return;
+        }
 
-        if (cardRT == null || boardRT == null)
+        if (BoardRoot.Instance != null)
+        {
+            BoardRoot.Instance.TryMoveRectToBoardKeepingVisualPosition(cardRT, worldCamera: null, eventCamera: null, clampToBoard: true);
+            return;
+        }
+
+        RectTransform boardRT = GetBoardContainer();
+        if (boardRT == null)
         {
             card.transform.SetParent(null, true);
             return;
@@ -130,9 +145,6 @@ public class CardStack : MonoBehaviour
 
         cardRT.SetParent(boardRT, false);
         cardRT.anchoredPosition = boardLocalPoint;
-
-        if (BoardRoot.Instance != null)
-            BoardRoot.Instance.ClampCardToBoard(cardRT);
     }
 
     /// <summary>
@@ -272,7 +284,7 @@ public class CardStack : MonoBehaviour
 
         if (cards.Count > 0 && cards[0] != null)
         {
-            CardDropTarget dropTarget = cards[0].GetComponent<CardDropTarget>();
+            CardStackLayoutAnchor dropTarget = cards[0].GetComponent<CardStackLayoutAnchor>();
             if (dropTarget != null)
                 effectiveOffset = dropTarget.GetStackOffset();
         }
@@ -288,6 +300,11 @@ public class CardStack : MonoBehaviour
             rt.anchoredPosition = effectiveOffset * i;
             card.transform.SetSiblingIndex(i);
         }
+
+        RefreshDropBounds();
+
+        if (dropSurfaceRect != null)
+            dropSurfaceRect.SetAsFirstSibling();
     }
 
     public CardStack SplitFrom(CardView card)
@@ -300,6 +317,25 @@ public class CardStack : MonoBehaviour
         if (index == 0)
             return this;
 
+        int movedCardCount = cards.Count - index;
+        if (movedCardCount == 1)
+        {
+            cards.Remove(card);
+
+            CardInstance instance = GetCardInstance(card);
+            if (instance != null && instance.CurrentStack == this)
+                instance.ClearCurrentStack(this);
+
+            MoveCardToBoardKeepingVisualPosition(card);
+
+            CleanupTrivialState();
+
+            if (this != null && gameObject != null && cards.Count >= 2)
+                NotifyStackChanged();
+
+            return null;
+        }
+
         RectTransform boardRT = GetBoardContainer();
         if (boardRT == null)
         {
@@ -307,29 +343,41 @@ public class CardStack : MonoBehaviour
             return this;
         }
 
-        GameObject newStackGO = new GameObject("CardStack", typeof(RectTransform));
-        RectTransform newStackRT = newStackGO.GetComponent<RectTransform>();
-
         RectTransform draggedCardRT = card.GetComponent<RectTransform>();
-        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, draggedCardRT.position);
-        Vector2 boardLocalPoint;
+        Vector2 boardLocalPoint = BoardRoot.Instance != null
+            ? BoardRoot.Instance.GetBoardPointFromWorldPosition(draggedCardRT.position)
+            : Vector2.zero;
 
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            boardRT,
-            screenPoint,
-            null,
-            out boardLocalPoint
-        );
+        if (BoardRoot.Instance == null)
+        {
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(null, draggedCardRT.position);
 
-        newStackRT.SetParent(boardRT, false);
-        newStackRT.anchorMin = new Vector2(0.5f, 0.5f);
-        newStackRT.anchorMax = new Vector2(0.5f, 0.5f);
-        newStackRT.pivot = new Vector2(0.5f, 0.5f);
-        newStackRT.localScale = Vector3.one;
-        newStackRT.localRotation = Quaternion.identity;
-        newStackRT.anchoredPosition = boardLocalPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                boardRT,
+                screenPoint,
+                null,
+                out boardLocalPoint
+            );
+        }
 
-        CardStack newStack = newStackGO.AddComponent<CardStack>();
+        RectTransform newStackRT = BoardRoot.Instance != null
+            ? BoardRoot.Instance.CreateBoardRectTransform("CardStack", boardLocalPoint, clampToBoard: true)
+            : null;
+
+        if (newStackRT == null)
+        {
+            GameObject fallbackStackGO = new GameObject("CardStack", typeof(RectTransform));
+            newStackRT = fallbackStackGO.GetComponent<RectTransform>();
+            newStackRT.SetParent(boardRT, false);
+            newStackRT.anchorMin = new Vector2(0.5f, 0.5f);
+            newStackRT.anchorMax = new Vector2(0.5f, 0.5f);
+            newStackRT.pivot = new Vector2(0.5f, 0.5f);
+            newStackRT.localScale = Vector3.one;
+            newStackRT.localRotation = Quaternion.identity;
+            newStackRT.anchoredPosition = boardLocalPoint;
+        }
+
+        CardStack newStack = newStackRT.gameObject.AddComponent<CardStack>();
         newStack.stackOffset = this.stackOffset;
         List<CardView> movedCards = new List<CardView>();
 
@@ -501,12 +549,9 @@ public class CardStack : MonoBehaviour
         return result;
     }
 
-    /// <summary>
-    /// Cuenta cuantas cartas del stack tienen un tag dado.
-    /// </summary>
-    public int CountCardsWithTag(string tag)
+    public int CountCardsWithCapability(CardCapabilityType capability)
     {
-        if (string.IsNullOrWhiteSpace(tag))
+        if (capability == CardCapabilityType.None)
             return 0;
 
         int count = 0;
@@ -519,31 +564,11 @@ public class CardStack : MonoBehaviour
             CardInstance instance = GetCardInstance(card);
             if (instance == null) continue;
 
-            if (instance.HasTag(tag))
+            if (instance.HasCapability(capability))
                 count++;
         }
 
         return count;
-    }
-
-    public bool ContainsCardWithTag(string tag)
-    {
-        if (string.IsNullOrWhiteSpace(tag))
-            return false;
-
-        for (int i = 0; i < cards.Count; i++)
-        {
-            CardView card = cards[i];
-            if (card == null) continue;
-
-            CardInstance instance = GetCardInstance(card);
-            if (instance == null) continue;
-
-            if (instance.HasTag(tag))
-                return true;
-        }
-
-        return false;
     }
 
     public CardView GetRootCard()
@@ -582,7 +607,7 @@ public class CardStack : MonoBehaviour
 
         Vector2 effectiveOffset = stackOffset;
 
-        CardDropTarget dropTarget = cards[0].GetComponent<CardDropTarget>();
+        CardStackLayoutAnchor dropTarget = cards[0].GetComponent<CardStackLayoutAnchor>();
         if (dropTarget != null)
             effectiveOffset = dropTarget.GetStackOffset();
 
@@ -605,19 +630,7 @@ public class CardStack : MonoBehaviour
         if (cards == null || cards.Count == 0)
             return;
 
-        RectTransform rootCardRT = cards[0].GetComponent<RectTransform>();
-        if (rootCardRT == null)
-            return;
-
-        float cardWidth = rootCardRT.rect.width * rootCardRT.lossyScale.x;
-        float cardHeight = rootCardRT.rect.height * rootCardRT.lossyScale.y;
-
-        Vector2 effectiveOffset = stackOffset;
-
-        CardDropTarget dropTarget = cards[0].GetComponent<CardDropTarget>();
-        if (dropTarget != null)
-            effectiveOffset = dropTarget.GetStackOffset();
-
+        bool hasBounds = false;
         float minX = 0f;
         float maxX = 0f;
         float minY = 0f;
@@ -625,28 +638,36 @@ public class CardStack : MonoBehaviour
 
         for (int i = 0; i < cards.Count; i++)
         {
-            Vector2 pos = effectiveOffset * i;
+            RectTransform cardRect = cards[i] != null ? cards[i].GetComponent<RectTransform>() : null;
+            if (cardRect == null)
+                continue;
 
-            float cardMinX = pos.x - (cardWidth * 0.5f);
-            float cardMaxX = pos.x + (cardWidth * 0.5f);
-            float cardMinY = pos.y - (cardHeight * 0.5f);
-            float cardMaxY = pos.y + (cardHeight * 0.5f);
+            Vector3[] worldCorners = new Vector3[4];
+            cardRect.GetWorldCorners(worldCorners);
 
-            if (i == 0)
+            for (int cornerIndex = 0; cornerIndex < worldCorners.Length; cornerIndex++)
             {
-                minX = cardMinX;
-                maxX = cardMaxX;
-                minY = cardMinY;
-                maxY = cardMaxY;
-            }
-            else
-            {
-                minX = Mathf.Min(minX, cardMinX);
-                maxX = Mathf.Max(maxX, cardMaxX);
-                minY = Mathf.Min(minY, cardMinY);
-                maxY = Mathf.Max(maxY, cardMaxY);
+                Vector3 localCorner3 = transform.InverseTransformPoint(worldCorners[cornerIndex]);
+                float x = localCorner3.x;
+                float y = localCorner3.y;
+
+                if (!hasBounds)
+                {
+                    minX = maxX = x;
+                    minY = maxY = y;
+                    hasBounds = true;
+                    continue;
+                }
+
+                minX = Mathf.Min(minX, x);
+                maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, y);
+                maxY = Mathf.Max(maxY, y);
             }
         }
+
+        if (!hasBounds)
+            return;
 
         left = -minX;
         right = maxX;
@@ -657,7 +678,83 @@ public class CardStack : MonoBehaviour
     private void NotifyStackChanged()
     {
         RefreshLayout();
+
+        if (BoardRoot.Instance != null)
+            BoardRoot.Instance.ClampStackVisualBoundsToBoard(this);
+
         OnStackChanged?.Invoke(this);
+    }
+
+    private void RefreshDropBounds()
+    {
+        EnsureDropSurface();
+
+        if (dropSurfaceRect == null)
+            return;
+
+        GetVisualExtents(out float left, out float right, out float bottom, out float top);
+        float width = left + right;
+        float height = bottom + top;
+
+        if (width <= 0f || height <= 0f)
+            return;
+
+        dropSurfaceRect.anchoredPosition = new Vector2(
+            (right - left) * 0.5f,
+            (top - bottom) * 0.5f);
+        dropSurfaceRect.sizeDelta = new Vector2(width, height);
+    }
+
+    private void EnsureDropSurface()
+    {
+        if (dropSurfaceRect != null && dropSurfaceImage != null)
+            return;
+
+        Transform existing = transform.Find("DropSurface");
+        if (existing != null)
+        {
+            dropSurfaceRect = existing as RectTransform;
+            dropSurfaceImage = existing.GetComponent<Image>();
+        }
+
+        if (dropSurfaceRect == null)
+        {
+            GameObject surfaceGO = new GameObject("DropSurface", typeof(RectTransform), typeof(Image));
+            surfaceGO.transform.SetParent(transform, false);
+            surfaceGO.transform.SetAsFirstSibling();
+
+            dropSurfaceRect = surfaceGO.GetComponent<RectTransform>();
+            dropSurfaceRect.anchorMin = new Vector2(0.5f, 0.5f);
+            dropSurfaceRect.anchorMax = new Vector2(0.5f, 0.5f);
+            dropSurfaceRect.pivot = new Vector2(0.5f, 0.5f);
+
+            dropSurfaceImage = surfaceGO.GetComponent<Image>();
+        }
+
+        if (dropSurfaceImage != null)
+        {
+            dropSurfaceImage.color = new Color(0f, 0f, 0f, 0f);
+            dropSurfaceImage.raycastTarget = true;
+        }
+    }
+
+    public void PopulateDropTargetInfo(CardDropTargetInfo targetInfo)
+    {
+        if (targetInfo == null)
+            return;
+
+        targetInfo.targetStack = this;
+
+        if (targetInfo.primaryType == CardDropTargetType.None)
+            targetInfo.primaryType = CardDropTargetType.Stack;
+    }
+
+    public void SetDropSurfaceRaycastEnabled(bool enabled)
+    {
+        EnsureDropSurface();
+
+        if (dropSurfaceImage != null)
+            dropSurfaceImage.raycastTarget = enabled;
     }
 
     public void StartCraftingVisuals(RecipeData recipe)

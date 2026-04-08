@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99d561ea98da8fa4ea70169d6f5ac408, type: 3}
   m_Name: Pila de monedas
   m_EditorClassIdentifier: Assembly-CSharp::ResourceCardData
-  id: Pila de monedas
-  cardName: 
-  displayName: 
+  id: Coin pile
+  cardName: Coin pile
+  displayName: Coin pile
   description: 
   cardType: 0
   rarity: 0
-  cardImage: {fileID: 4246635398021394711, guid: 60d638774fe310d499966614ead5e872, type: 3}
+  cardImage: {fileID: 9044916243785556702, guid: 9b217a8f01393b644a311134c38e7f7d, type: 3}
+  cardIcon: {fileID: -3052112229357186569, guid: 405d969f0046e94489416599d67ea706, type: 3}
   stackable: 1
   isMovable: 1
   weight: 1
@@ -26,6 +27,5 @@ MonoBehaviour:
   isCurrency: 1
   currencyType: 1
   maxUses: 0
-  tags:
-  - normal currency
+  capabilities: 
   resourceType: 5

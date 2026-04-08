@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0,5191558">
+  <test-suite type="TestSuite" id="1019" name="Stacklands - Ultimate" fullname="Stacklands - Ultimate" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.519156" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1007" name="Assembly-CSharp-Editor.dll" fullname="C:/Users/raddi/Stacklands - Ultimate/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.306066" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="13128" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1001" name="MarketEconomyServiceTests" fullname="MarketEconomyServiceTests" classname="MarketEconomyServiceTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.302675" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1006" name="BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" fullname="MarketEconomyServiceTests.BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" methodname="BuildBestValueCombination_IgnoresCurrenciesWithNonPositiveValue" classname="MarketEconomyServiceTests" runstate="Runnable" seed="315890242" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.197188" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1003" name="BuildBestValueCombination_PrefersFewerCards" fullname="MarketEconomyServiceTests.BuildBestValueCombination_PrefersFewerCards" methodname="BuildBestValueCombination_PrefersFewerCards" classname="MarketEconomyServiceTests" runstate="Runnable" seed="1400020069" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.000792" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1004" name="BuildBestValueCombination_RespectsCurrencyFilter" fullname="MarketEconomyServiceTests.BuildBestValueCombination_RespectsCurrencyFilter" methodname="BuildBestValueCombination_RespectsCurrencyFilter" classname="MarketEconomyServiceTests" runstate="Runnable" seed="1590443721" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.000576" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1005" name="BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" fullname="MarketEconomyServiceTests.BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" methodname="BuildBestValueCombination_ReturnsNull_WhenExactValueIsImpossible" classname="MarketEconomyServiceTests" runstate="Runnable" seed="1712378451" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.000470" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1002" name="MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" fullname="MarketEconomyServiceTests.MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" methodname="MatchesCurrencyFilter_AllowOnlyListed_AcceptsOnlyListedTypes" classname="MarketEconomyServiceTests" runstate="Runnable" seed="465585620" result="Passed" start-time="2026-04-02 06:36:38Z" end-time="2026-04-02 06:36:38Z" duration="0.000581" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Saving results to: C:/Users/raddi/AppData/LocalLow/DefaultCompany/Stacklands - Ultimate\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

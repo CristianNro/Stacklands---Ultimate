@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1dcb9df35554984a7ed8fe8e4bcb2f1, type: 3}
   m_Name: Cofre de Oro
   m_EditorClassIdentifier: Assembly-CSharp::ContainerCardData
-  id: 
-  cardName: 
-  displayName: 
+  id: Gold Chest
+  cardName: Gold Chest
+  displayName: Gold Chest
   description: 
   cardType: 7
   rarity: 0
-  cardImage: {fileID: -8929714730241205940, guid: 9be2b45dd4e77cd4cb01d7a06fc97578, type: 3}
+  cardImage: {fileID: 9044916243785556702, guid: 9b217a8f01393b644a311134c38e7f7d, type: 3}
+  cardIcon: {fileID: -5311137555049757658, guid: 405d969f0046e94489416599d67ea706, type: 3}
   stackable: 1
   isMovable: 1
   weight: 1
@@ -26,10 +27,12 @@ MonoBehaviour:
   isCurrency: 1
   currencyType: 1
   maxUses: 0
-  tags:
-  - normal currency
+  capabilities: 
   capacity: 50
   listMode: 0
   listedCardTypes: 
+  useResourceTypeFilter: 0
+  resourceListMode: 0
+  listedResourceTypes: 05000000
   releaseRadius: 80
   maxCardsReleasedPerOpen: 5

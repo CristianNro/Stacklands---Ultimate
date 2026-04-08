@@ -12,7 +12,7 @@ Past issues:
 
 Current architectural risk:
 
-- `CardDrag` is too central and currently owns too many gameplay decisions
+- interaction still depends on scene-hierarchy target discovery and can benefit from stronger explicit target contracts
 
 ## Stack integrity
 
@@ -32,11 +32,11 @@ Past issues:
 
 - incorrect matching after stack changes
 - ambiguous priority between possible matches
-- fragile tag-driven behaviors
+- asset migration debt after the tag-to-capability change
 
 Current architectural risk:
 
-- recipe rules still rely too much on strings and scene-coupled evaluation
+- recipe evaluation still wants further decoupling from scene-bound runtime context even after the move to stronger typed contracts
 
 ## Crafting
 
@@ -61,7 +61,7 @@ Past issues:
 
 Current architectural risk:
 
-- placement and occupancy logic are not centralized strongly enough
+- board placement authority is much stronger now, but some feature flows still decide spatial policy outside the board boundary
 
 ## Containers
 
@@ -72,7 +72,7 @@ Past issues:
 
 Current architectural risk:
 
-- stored card data is not a full runtime snapshot
+- snapshot coverage may need to grow again if card runtime state becomes richer
 
 ## Market/economy
 
@@ -83,7 +83,7 @@ Past issues:
 
 Current architectural risk:
 
-- economy logic is duplicated across market-facing systems
+- some market-facing flow still depends on slot orchestration and interaction-layer precedence
 
 ## Prefabs/references
 

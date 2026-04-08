@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Diagnostics;
 
 // ============================================================
 // MarketPackRuntime
@@ -13,6 +14,10 @@ public class MarketPackRuntime : MonoBehaviour, IPointerClickHandler
     [SerializeField] private float doubleClickWindow = 0.35f;
     [SerializeField] private float releaseRadius = 120f;
     [SerializeField] private float releaseDuration = 0.6f;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugPackOpenTimings = false;
+    [SerializeField] private float debugLogThresholdMs = 1f;
 
     private CardInstance cardInstance;
     private float lastClickTime = -10f;
@@ -41,17 +46,24 @@ public class MarketPackRuntime : MonoBehaviour, IPointerClickHandler
     /// </summary>
     public void OpenPack()
     {
+        Stopwatch stopwatch = debugPackOpenTimings ? Stopwatch.StartNew() : null;
+        long resolvePackMs = 0L;
+        long buildOpenListMs = 0L;
+        int releasedCards = 0;
+
         if (cardInstance == null)
             return;
 
         BaseMarketPackData packData = ResolvePackData();
+        if (stopwatch != null)
+            resolvePackMs = stopwatch.ElapsedMilliseconds;
 
         if (packData == null)
             return;
 
         if (CardSpawner.Instance == null)
         {
-            Debug.LogWarning($"[{name}] No existe CardSpawner.Instance para abrir el pack.");
+            UnityEngine.Debug.LogWarning($"[{name}] No existe CardSpawner.Instance para abrir el pack.");
             return;
         }
 
@@ -60,6 +72,8 @@ public class MarketPackRuntime : MonoBehaviour, IPointerClickHandler
             : Vector2.zero;
 
         var openedCards = packData.GetOpenedCards();
+        if (stopwatch != null)
+            buildOpenListMs = stopwatch.ElapsedMilliseconds;
         if (openedCards == null || openedCards.Count == 0)
             return;
 
@@ -81,11 +95,22 @@ public class MarketPackRuntime : MonoBehaviour, IPointerClickHandler
                 targetPosition,
                 releaseDuration
             );
+            releasedCards++;
         }
 
         if (MarketPackRegistry.Instance != null)
             MarketPackRegistry.Instance.Unregister(cardInstance);
         Destroy(gameObject);
+
+        if (stopwatch != null && stopwatch.ElapsedMilliseconds >= debugLogThresholdMs)
+        {
+            string packLabel = !string.IsNullOrWhiteSpace(packData.displayName) ? packData.displayName : packData.name;
+            UnityEngine.Debug.Log(
+                $"[MarketPackRuntime] OpenPack '{packLabel}' took {stopwatch.ElapsedMilliseconds} ms " +
+                $"(resolve pack: {resolvePackMs} ms, build contents: {Mathf.Max(0, buildOpenListMs - resolvePackMs)} ms, " +
+                $"queue spawns: {Mathf.Max(0, stopwatch.ElapsedMilliseconds - buildOpenListMs)} ms, released: {releasedCards}).",
+                this);
+        }
     }
 
     /// <summary>

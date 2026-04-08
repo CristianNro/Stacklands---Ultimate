@@ -13,17 +13,20 @@ MonoBehaviour:
   m_Name: InitialPack
   m_EditorClassIdentifier: Assembly-CSharp::PackCardData
   id: InitialPack
-  cardName: 
-  displayName: 
+  cardName: InitialPack
+  displayName: InitialPack
   description: 
-  cardType: 0
+  cardType: 3
   rarity: 0
   cardImage: {fileID: 8921895421740178155, guid: a128ff61dad7db347a515482dd043614, type: 3}
+  cardIcon: {fileID: 0}
   stackable: 0
   isMovable: 1
   weight: 1
   value: 0
+  isCurrency: 0
+  currencyType: 0
   maxUses: 0
-  tags: []
+  capabilities: 
   itemType: 3
   embeddedPackData: {fileID: 11400000, guid: 75db68d921d3e7e49a4558269adc0dcb, type: 2}
